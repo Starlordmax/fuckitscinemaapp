@@ -2,6 +2,7 @@ services:
   - type: web
     runtime: static
     name: fuck-its-cinema
+    rootDir: .
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     autoDeployTrigger: commit
