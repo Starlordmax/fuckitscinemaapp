@@ -59,6 +59,8 @@ const SERVICE_CAPACITY = {
   'Disney+': 7,
   Hbomax: 5,
   Primevideo: 6,
+  'Netflix(cuenta completa)': 1,
+  'Hbomax (cuenta completa)': 1,
 };
 
 const SERVICE_PRICES = {
