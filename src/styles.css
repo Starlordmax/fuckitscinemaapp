@@ -189,7 +189,8 @@ button {
 
 .icon-button,
 .icon-text-button,
-.primary-button {
+.primary-button,
+.secondary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -218,9 +219,16 @@ button {
   color: white;
 }
 
+.secondary-button {
+  padding: 0 14px;
+  background: #eee2cf;
+  color: #211f1c;
+}
+
 .icon-button:disabled,
 .icon-text-button:disabled,
-.primary-button:disabled {
+.primary-button:disabled,
+.secondary-button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
@@ -331,6 +339,10 @@ table {
   min-width: 720px;
 }
 
+.accounts-table {
+  min-width: 860px;
+}
+
 th,
 td {
   padding: 11px 10px;
@@ -421,6 +433,22 @@ td {
   outline: 0;
   background: #fffdf8;
   color: #211f1c;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  color: #665c50;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.toggle-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: #c73535;
 }
 
 .field input:focus,

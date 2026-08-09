@@ -9,6 +9,7 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
+  Pencil,
   Plus,
   RefreshCw,
   Save,
@@ -17,6 +18,7 @@ import {
   UserRound,
   Users,
   WalletCards,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -34,6 +36,7 @@ import {
   onAuthStateChange,
   signInWithPassword,
   signOut,
+  updateAccount,
 } from './lib/api';
 import { hasSupabaseConfig } from './lib/supabaseClient';
 
@@ -739,14 +742,21 @@ function Customers({ rows, error, onSaved }) {
   );
 }
 
-function Accounts({ rows, error, onSaved, session }) {
-  const [form, setForm] = useState({
+function createEmptyAccountForm(service = 'Netflix') {
+  return {
     email: '',
     password: '',
-    service: 'Netflix',
-    capacity: getServiceCapacity('Netflix'),
-  });
+    service,
+    capacity: getServiceCapacity(service),
+    active: true,
+  };
+}
+
+function Accounts({ rows, error, onSaved, session }) {
+  const [form, setForm] = useState(createEmptyAccountForm());
+  const [editingAccount, setEditingAccount] = useState(null);
   const [message, setMessage] = useState('');
+  const isEditing = Boolean(editingAccount);
 
   function updateField(key, value) {
     setForm((current) => {
@@ -762,6 +772,25 @@ function Accounts({ rows, error, onSaved, session }) {
     });
   }
 
+  function clearForm(nextMessage = '') {
+    setForm(createEmptyAccountForm(form.service));
+    setEditingAccount(null);
+    setMessage(nextMessage);
+  }
+
+  function editAccount(account) {
+    const service = account.tipo_de_servicio__c || 'Netflix';
+    setEditingAccount(account);
+    setForm({
+      email: account.correo_electronico__c || '',
+      password: account.contrasena__c || '',
+      service,
+      capacity: account.capacidad_clientes__c ?? getServiceCapacity(service),
+      active: account.activo__c !== false,
+    });
+    setMessage('');
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage('');
@@ -772,9 +801,13 @@ function Accounts({ rows, error, onSaved, session }) {
     }
 
     try {
-      await createAccount(form);
-      setForm({ email: '', password: '', service: form.service, capacity: getServiceCapacity(form.service) });
-      setMessage('Cuenta guardada.');
+      if (isEditing) {
+        await updateAccount(editingAccount.id, form);
+        clearForm('Cuenta actualizada.');
+      } else {
+        await createAccount(form);
+        clearForm('Cuenta guardada.');
+      }
       onSaved();
     } catch (error) {
       setMessage(getErrorText(error));
@@ -790,7 +823,7 @@ function Accounts({ rows, error, onSaved, session }) {
         </div>
         <DataError error={error} />
         <div className="table-wrap">
-          <table>
+          <table className="accounts-table">
             <thead>
               <tr>
                 <th>Correo</th>
@@ -799,17 +832,24 @@ function Accounts({ rows, error, onSaved, session }) {
                 <th>Clientes</th>
                 <th>Capacidad</th>
                 <th>Activa</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={editingAccount?.id === row.id ? 'selected-row' : ''}>
                   <td>{row.correo_electronico__c}</td>
                   <td>{row.contrasena__c || '-'}</td>
                   <td>{row.tipo_de_servicio__c}</td>
                   <td>{row.clientes_contador__c}</td>
                   <td>{row.capacidad_clientes__c ?? '—'}</td>
                   <td>{row.activo__c ? 'Si' : 'No'}</td>
+                  <td>
+                    <button type="button" className="table-action" onClick={() => editAccount(row)}>
+                      <Pencil size={15} />
+                      Editar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -818,8 +858,8 @@ function Accounts({ rows, error, onSaved, session }) {
       </section>
       <section className="panel">
         <div className="panel__header">
-          <h2>Nueva Cuenta</h2>
-          <Plus size={18} />
+          <h2>{isEditing ? 'Editar Cuenta' : 'Nueva Cuenta'}</h2>
+          {isEditing ? <Pencil size={18} /> : <Plus size={18} />}
         </div>
         <form className="stack" onSubmit={handleSubmit}>
           <TextInput label="Correo" type="email" value={form.email} onChange={(value) => updateField('email', value)} />
@@ -829,10 +869,24 @@ function Accounts({ rows, error, onSaved, session }) {
             <span>Capacidad</span>
             <input type="number" value={form.capacity} readOnly />
           </label>
+          <label className="toggle-field">
+            <input
+              type="checkbox"
+              checked={form.active}
+              onChange={(event) => updateField('active', event.target.checked)}
+            />
+            <span>Cuenta activa</span>
+          </label>
           <button type="submit" className="primary-button" disabled={!session}>
             <Save size={17} />
-            Guardar
+            {isEditing ? 'Actualizar' : 'Guardar'}
           </button>
+          {isEditing && (
+            <button type="button" className="secondary-button" onClick={() => clearForm()}>
+              <X size={17} />
+              Cancelar
+            </button>
+          )}
           {!session && <span className="form-message">Inicia sesion para guardar cuentas.</span>}
           {message && <span className="form-message">{message}</span>}
         </form>

@@ -171,12 +171,30 @@ export async function createAccount(payload) {
     await client
       .from('correo_electronico__c')
       .insert({
-        correo_electronico__c: payload.email,
+        correo_electronico__c: payload.email.trim(),
         contrasena__c: payload.password?.trim() || null,
         tipo_de_servicio__c: payload.service,
         capacidad_clientes__c: payload.capacity ? Number(payload.capacity) : null,
-        activo__c: true,
+        activo__c: payload.active ?? true,
       })
+      .select()
+      .single(),
+  );
+}
+
+export async function updateAccount(id, payload) {
+  const client = ensureClient();
+  return unwrap(
+    await client
+      .from('correo_electronico__c')
+      .update({
+        correo_electronico__c: payload.email.trim(),
+        contrasena__c: payload.password?.trim() || null,
+        tipo_de_servicio__c: payload.service,
+        capacidad_clientes__c: payload.capacity ? Number(payload.capacity) : null,
+        activo__c: payload.active,
+      })
+      .eq('id', id)
       .select()
       .single(),
   );
