@@ -336,7 +336,7 @@ table {
 }
 
 .compact-table {
-  min-width: 850px;
+  min-width: 980px;
 }
 
 .accounts-table {
@@ -521,6 +521,27 @@ td {
   color: #766b5c;
   font-size: 12px;
   font-weight: 700;
+}
+
+.subscription-editor {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5dccd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.subscription-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.subscription-editor__header h3 {
+  margin: 0;
+  font-size: 15px;
 }
 
 .lookup-field {

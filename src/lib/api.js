@@ -107,6 +107,19 @@ export async function createSubscription(payload) {
   }));
 }
 
+export async function updateSubscription(id, payload) {
+  const client = ensureClient();
+  return unwrap(await client.rpc('actualizar_suscripcion', {
+    subscription_id: id,
+    fechaDeCompra: payload.startDate,
+    clienteDe: payload.seller,
+    servicioAdquirido: payload.service,
+    cuentaVinculada: payload.accountEmail || '',
+    metodoPago: payload.paymentMethod,
+    status: payload.status,
+  }));
+}
+
 export async function listCustomers() {
   const client = ensureClient();
   return unwrap(
@@ -123,7 +136,7 @@ export async function listCustomerSubscriptions(customerId) {
   const subscriptionsResult = await client
     .from('subscription__c')
     .select(
-      'id, service__c, precio__c, status__c, start_date__c, expiration_date__c, cuenta_vinculada__c, cuenta_correo_electronico__c, metodo_de_pago__c',
+      'id, service__c, precio__c, cliente_de__c, status__c, start_date__c, expiration_date__c, cuenta_vinculada__c, cuenta_correo_electronico__c, metodo_de_pago__c',
     )
     .eq('cliente__c', customerId)
     .order('expiration_date__c', { ascending: false })

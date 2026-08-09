@@ -38,6 +38,7 @@ import {
   signInWithPassword,
   signOut,
   updateAccount,
+  updateSubscription,
 } from './lib/api';
 import { hasSupabaseConfig } from './lib/supabaseClient';
 
@@ -663,7 +664,151 @@ function CashTable({ rows, error }) {
   );
 }
 
-function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSubscription }) {
+function createSubscriptionEditForm(subscription) {
+  const service = subscription?.service__c || 'Netflix';
+  return {
+    seller: subscription?.cliente_de__c || 'Marbelly',
+    service,
+    paymentMethod: subscription?.metodo_de_pago__c || 'Efectivo',
+    status: subscription?.status__c || 'Pagado',
+    startDate: subscription?.start_date__c || new Date().toISOString().slice(0, 10),
+    accountEmail: subscription?.account_email || subscription?.cuenta_correo_electronico__c || '',
+  };
+}
+
+function SubscriptionEditForm({ subscription, onSaved, onCancel }) {
+  const [form, setForm] = useState(() => createSubscriptionEditForm(subscription));
+  const [accounts, setAccounts] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+
+  function updateField(key, value) {
+    setForm((current) => {
+      if (key === 'service') {
+        return { ...current, service: value, accountEmail: '' };
+      }
+      return { ...current, [key]: value };
+    });
+  }
+
+  useEffect(() => {
+    setForm(createSubscriptionEditForm(subscription));
+    setMessage('');
+  }, [subscription?.id]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadAccounts() {
+      try {
+        const data = await getServiceAccounts(form.service);
+        if (!ignore) {
+          setAccounts(data);
+          if (!form.accountEmail && data[0]?.Correo_Electronico__c) {
+            setForm((current) =>
+              current.accountEmail ? current : { ...current, accountEmail: data[0].Correo_Electronico__c },
+            );
+          }
+        }
+      } catch {
+        if (!ignore) {
+          setAccounts([]);
+        }
+      }
+    }
+    loadAccounts();
+    return () => {
+      ignore = true;
+    };
+  }, [form.service]);
+
+  const accountOptions = useMemo(() => {
+    if (!form.accountEmail) {
+      return accounts;
+    }
+
+    const hasCurrent = accounts.some((account) => account.Correo_Electronico__c === form.accountEmail);
+    if (hasCurrent) {
+      return accounts;
+    }
+
+    return [
+      {
+        Id: form.accountEmail,
+        Correo_Electronico__c: form.accountEmail,
+        Clientes_Contador__c: 'Actual',
+      },
+      ...accounts,
+    ];
+  }, [accounts, form.accountEmail]);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage('');
+    try {
+      await updateSubscription(subscription.id, form);
+      await onSaved();
+    } catch (error) {
+      setMessage(getErrorText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="subscription-editor" onSubmit={handleSubmit}>
+      <div className="subscription-editor__header">
+        <h3>Editar suscripcion</h3>
+        <button type="button" className="table-action" onClick={onCancel}>
+          <X size={15} />
+          Cancelar
+        </button>
+      </div>
+      <div className="form-grid">
+        <SelectInput label="Vendedor" value={form.seller} onChange={(value) => updateField('seller', value)} options={SELLERS} />
+        <SelectInput label="Servicio" value={form.service} onChange={(value) => updateField('service', value)} options={SERVICES} />
+        <SelectInput
+          label="Metodo de pago"
+          value={form.paymentMethod}
+          onChange={(value) => updateField('paymentMethod', value)}
+          options={PAYMENT_METHODS}
+        />
+        <SelectInput label="Status" value={form.status} onChange={(value) => updateField('status', value)} options={STATUSES} />
+        <TextInput label="Start Date" type="date" value={form.startDate} onChange={(value) => updateField('startDate', value)} />
+        <label className="field">
+          <span>Precio</span>
+          <input type="text" value={formatCurrency(getServicePrice(form.service))} readOnly />
+        </label>
+        <label className="field field--wide">
+          <span>Cuenta asociada</span>
+          <select value={form.accountEmail} onChange={(event) => updateField('accountEmail', event.target.value)}>
+            <option value="">Sin cuenta</option>
+            {accountOptions.map((account) => (
+              <option key={account.Id || account.Correo_Electronico__c} value={account.Correo_Electronico__c}>
+                {account.Correo_Electronico__c} ({account.Clientes_Contador__c})
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="form-actions">
+          <button type="submit" className="primary-button" disabled={busy}>
+            <Save size={17} />
+            Actualizar
+          </button>
+          {message && <span className="form-message">{message}</span>}
+        </div>
+      </div>
+    </form>
+  );
+}
+
+function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSubscription, onSubscriptionsChanged }) {
+  const [editingSubscription, setEditingSubscription] = useState(null);
+
+  useEffect(() => {
+    setEditingSubscription(null);
+  }, [customer?.id]);
+
   if (!customer) {
     return <EmptyState icon={ClipboardList} title="Sin cliente seleccionado" text="Selecciona un cliente en la tabla." />;
   }
@@ -682,6 +827,16 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
         </button>
       </div>
       <DataError error={error} />
+      {editingSubscription && (
+        <SubscriptionEditForm
+          subscription={editingSubscription}
+          onCancel={() => setEditingSubscription(null)}
+          onSaved={async () => {
+            await onSubscriptionsChanged();
+            setEditingSubscription(null);
+          }}
+        />
+      )}
       {loading ? (
         <EmptyState icon={RefreshCw} title="Cargando" text="Consultando suscripciones." />
       ) : rows.length === 0 && !error ? (
@@ -697,12 +852,13 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
                 <th>Ultimo pago</th>
                 <th>Termina</th>
                 <th>Status</th>
+                <th>Editar</th>
                 <th>Imagen</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={editingSubscription?.id === row.id ? 'selected-row' : ''}>
                   <td>{row.service__c}</td>
                   <td>{formatCurrency(row.precio__c)}</td>
                   <td>{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
@@ -712,6 +868,12 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
                     <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
                       {row.status__c}
                     </span>
+                  </td>
+                  <td>
+                    <button type="button" className="table-action" onClick={() => setEditingSubscription(row)}>
+                      <Pencil size={15} />
+                      Editar
+                    </button>
                   </td>
                   <td>
                     <button
@@ -876,6 +1038,25 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
     setPanelView('subscriptions');
   }
 
+  async function reloadSelectedSubscriptions() {
+    if (!selectedCustomer?.id) {
+      return;
+    }
+
+    setLoadingSubscriptions(true);
+    setSubscriptionsError(null);
+    try {
+      const data = await listCustomerSubscriptions(selectedCustomer.id);
+      setSubscriptions(data);
+      await onSaved();
+    } catch (error) {
+      setSubscriptions([]);
+      setSubscriptionsError(error);
+    } finally {
+      setLoadingSubscriptions(false);
+    }
+  }
+
   useEffect(() => {
     if (panelView !== 'subscriptions' || !selectedCustomer?.id) {
       return undefined;
@@ -1001,6 +1182,7 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
             loading={loadingSubscriptions}
             error={subscriptionsError}
             onCreateSubscription={onCreateSubscription}
+            onSubscriptionsChanged={reloadSelectedSubscriptions}
           />
         )}
       </section>
