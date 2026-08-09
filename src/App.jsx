@@ -47,6 +47,8 @@ const SERVICES = [
   'Hbomax',
   'Hbomax (cuenta completa)',
   'Primevideo',
+  'Paramount+',
+  'Crunchyroll',
   'Spotify',
   'Netflix(cuenta completa)',
 ];
@@ -56,6 +58,17 @@ const SERVICE_CAPACITY = {
   'Disney+': 7,
   Hbomax: 5,
   Primevideo: 6,
+};
+
+const SERVICE_PRICES = {
+  Netflix: 140,
+  'Disney+': 120,
+  Hbomax: 100,
+  Primevideo: 100,
+  'Paramount+': 100,
+  Crunchyroll: 100,
+  'Netflix(cuenta completa)': 450,
+  'Hbomax (cuenta completa)': 300,
 };
 
 const SERVICE_IMAGE_THEMES = {
@@ -94,6 +107,20 @@ const SERVICE_IMAGE_THEMES = {
     iconTop: '#1db954',
     iconBottom: '#103d24',
   },
+  paramount: {
+    label: 'Paramount+',
+    accent: '#2d8eff',
+    secondary: '#8fc7ff',
+    iconTop: '#0b5fe8',
+    iconBottom: '#07348a',
+  },
+  crunchyroll: {
+    label: 'Crunchyroll',
+    accent: '#f47521',
+    secondary: '#ffb26b',
+    iconTop: '#f47521',
+    iconBottom: '#8a3b0a',
+  },
   default: {
     label: 'Streaming',
     accent: '#f2a01f',
@@ -121,7 +148,8 @@ function formatCurrency(value) {
   const numeric = Number(value || 0);
   return new Intl.NumberFormat('es-NI', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NIO',
+    maximumFractionDigits: 0,
   }).format(numeric);
 }
 
@@ -290,6 +318,10 @@ function getServiceCapacity(service) {
   return SERVICE_CAPACITY[service] ?? '';
 }
 
+function getServicePrice(service) {
+  return SERVICE_PRICES[service] ?? 0;
+}
+
 function getServiceImageTheme(service) {
   const normalized = String(service || '').toLowerCase();
   if (normalized.includes('disney')) return SERVICE_IMAGE_THEMES.disney;
@@ -297,6 +329,8 @@ function getServiceImageTheme(service) {
   if (normalized.includes('hbo')) return SERVICE_IMAGE_THEMES.hbo;
   if (normalized.includes('prime')) return SERVICE_IMAGE_THEMES.prime;
   if (normalized.includes('spotify')) return SERVICE_IMAGE_THEMES.spotify;
+  if (normalized.includes('paramount')) return SERVICE_IMAGE_THEMES.paramount;
+  if (normalized.includes('crunchyroll')) return SERVICE_IMAGE_THEMES.crunchyroll;
   return SERVICE_IMAGE_THEMES.default;
 }
 
@@ -571,7 +605,7 @@ function ExpiredTable({ rows, error }) {
                   <td>{row.clienteName}</td>
                   <td>{formatDate(row.expirationDate)}</td>
                   <td>{row.service}</td>
-                  <td>{row.price}</td>
+                  <td>{formatCurrency(row.price)}</td>
                   <td>{row.clienteDe || '—'}</td>
                 </tr>
               ))}
@@ -658,6 +692,7 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
             <thead>
               <tr>
                 <th>Servicio</th>
+                <th>Precio</th>
                 <th>Cuenta</th>
                 <th>Ultimo pago</th>
                 <th>Termina</th>
@@ -669,6 +704,7 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>{row.service__c}</td>
+                  <td>{formatCurrency(row.precio__c)}</td>
                   <td>{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
                   <td>{formatDate(row.last_payment_date)}</td>
                   <td>{formatDate(row.expiration_date__c)}</td>
@@ -791,6 +827,10 @@ function NewSubscription({ customers, onSaved, draft }) {
         />
         <SelectInput label="Status" value={form.status} onChange={(value) => updateField('status', value)} options={STATUSES} />
         <TextInput label="Start Date" type="date" value={form.startDate} onChange={(value) => updateField('startDate', value)} />
+        <label className="field">
+          <span>Precio</span>
+          <input type="text" value={formatCurrency(getServicePrice(form.service))} readOnly />
+        </label>
         <label className="field field--wide">
           <span>Cuenta asociada</span>
           <select value={form.accountEmail} onChange={(event) => updateField('accountEmail', event.target.value)}>

@@ -123,7 +123,7 @@ export async function listCustomerSubscriptions(customerId) {
   const subscriptionsResult = await client
     .from('subscription__c')
     .select(
-      'id, service__c, status__c, start_date__c, expiration_date__c, cuenta_vinculada__c, cuenta_correo_electronico__c, metodo_de_pago__c',
+      'id, service__c, precio__c, status__c, start_date__c, expiration_date__c, cuenta_vinculada__c, cuenta_correo_electronico__c, metodo_de_pago__c',
     )
     .eq('cliente__c', customerId)
     .order('expiration_date__c', { ascending: false })
