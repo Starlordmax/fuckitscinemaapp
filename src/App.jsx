@@ -91,7 +91,7 @@ function getErrorText(error) {
   if (error.message) {
     const message = error.message.toLowerCase();
     if (message.includes('row-level security') || message.includes('permission denied')) {
-      return 'Inicia sesion para guardar o refresca tu sesion.';
+      return 'No tienes permiso para guardar este registro o tu sesion expiro. Sal y vuelve a entrar.';
     }
 
     return error.message;
