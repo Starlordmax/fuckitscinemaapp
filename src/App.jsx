@@ -88,6 +88,11 @@ function getErrorText(error) {
   }
 
   if (error.message) {
+    const message = error.message.toLowerCase();
+    if (message.includes('row-level security') || message.includes('permission denied')) {
+      return 'Inicia sesion para guardar o refresca tu sesion.';
+    }
+
     return error.message;
   }
 
@@ -506,7 +511,7 @@ function Customers({ rows, error, onSaved }) {
   );
 }
 
-function Accounts({ rows, error, onSaved }) {
+function Accounts({ rows, error, onSaved, session }) {
   const [form, setForm] = useState({
     email: '',
     service: 'Netflix',
@@ -531,6 +536,12 @@ function Accounts({ rows, error, onSaved }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage('');
+
+    if (!session) {
+      setMessage('Inicia sesion para guardar cuentas.');
+      return;
+    }
+
     try {
       await createAccount(form);
       setForm({ email: '', service: form.service, capacity: getServiceCapacity(form.service) });
@@ -586,10 +597,11 @@ function Accounts({ rows, error, onSaved }) {
             <span>Capacidad</span>
             <input type="number" value={form.capacity} readOnly />
           </label>
-          <button type="submit" className="primary-button">
+          <button type="submit" className="primary-button" disabled={!session}>
             <Save size={17} />
             Guardar
           </button>
+          {!session && <span className="form-message">Inicia sesion para guardar cuentas.</span>}
           {message && <span className="form-message">{message}</span>}
         </form>
       </section>
@@ -760,7 +772,7 @@ export default function App() {
         {activeTab === 'new' && <NewSubscription onSaved={refreshData} />}
         {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
-        {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} />}
+        {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
         {activeTab === 'customers' && <Customers rows={filteredCustomers} error={errors.customers} onSaved={refreshData} />}
       </section>
     </main>
