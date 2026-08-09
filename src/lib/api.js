@@ -120,25 +120,37 @@ export async function listCustomers() {
 
 export async function listCustomerSubscriptions(customerId) {
   const client = ensureClient();
-  const [subscriptionsResult, paymentsResult] = await Promise.all([
-    client
-      .from('subscription__c')
-      .select(
-        'id, service__c, status__c, start_date__c, expiration_date__c, cuenta_correo_electronico__c, metodo_de_pago__c',
-      )
-      .eq('cliente__c', customerId)
-      .order('expiration_date__c', { ascending: false })
-      .limit(100),
+  const subscriptionsResult = await client
+    .from('subscription__c')
+    .select(
+      'id, service__c, status__c, start_date__c, expiration_date__c, cuenta_vinculada__c, cuenta_correo_electronico__c, metodo_de_pago__c',
+    )
+    .eq('cliente__c', customerId)
+    .order('expiration_date__c', { ascending: false })
+    .limit(100);
+  const subscriptions = unwrap(subscriptionsResult);
+
+  const accountIds = Array.from(
+    new Set(subscriptions.map((subscription) => subscription.cuenta_vinculada__c).filter(Boolean)),
+  );
+  const [paymentsResult, accountsResult] = await Promise.all([
     client
       .from('dinero_de_cuentas__c')
       .select('subscription_pagada__c, fecha_de_pago__c')
       .eq('cliente__c', customerId)
       .order('fecha_de_pago__c', { ascending: false }),
+    accountIds.length
+      ? client
+          .from('correo_electronico__c')
+          .select('id, correo_electronico__c, contrasena__c')
+          .in('id', accountIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const subscriptions = unwrap(subscriptionsResult);
   const payments = unwrap(paymentsResult);
+  const accounts = unwrap(accountsResult);
   const lastPaymentBySubscription = new Map();
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
 
   payments.forEach((payment) => {
     if (!lastPaymentBySubscription.has(payment.subscription_pagada__c)) {
@@ -146,10 +158,15 @@ export async function listCustomerSubscriptions(customerId) {
     }
   });
 
-  return subscriptions.map((subscription) => ({
-    ...subscription,
-    last_payment_date: lastPaymentBySubscription.get(subscription.id) || subscription.start_date__c,
-  }));
+  return subscriptions.map((subscription) => {
+    const account = accountById.get(subscription.cuenta_vinculada__c);
+    return {
+      ...subscription,
+      account_email: account?.correo_electronico__c || subscription.cuenta_correo_electronico__c,
+      account_password: account?.contrasena__c || '',
+      last_payment_date: lastPaymentBySubscription.get(subscription.id) || subscription.start_date__c,
+    };
+  });
 }
 
 export async function listAccounts() {

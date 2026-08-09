@@ -5,6 +5,7 @@ import {
   Clapperboard,
   ClipboardList,
   DollarSign,
+  Download,
   Film,
   LockKeyhole,
   LogOut,
@@ -55,6 +56,51 @@ const SERVICE_CAPACITY = {
   'Disney+': 7,
   Hbomax: 5,
   Primevideo: 6,
+};
+
+const SERVICE_IMAGE_THEMES = {
+  disney: {
+    label: 'Disney+',
+    accent: '#2d8eff',
+    secondary: '#48d5ff',
+    iconTop: '#3357b8',
+    iconBottom: '#36b7e2',
+  },
+  netflix: {
+    label: 'NETFLIX',
+    accent: '#e50914',
+    secondary: '#ff8a8a',
+    iconTop: '#ad0710',
+    iconBottom: '#241111',
+  },
+  hbo: {
+    label: 'MAX',
+    accent: '#7c5cff',
+    secondary: '#54c4ff',
+    iconTop: '#29235c',
+    iconBottom: '#111827',
+  },
+  prime: {
+    label: 'Prime Video',
+    accent: '#00a8e1',
+    secondary: '#7dd3fc',
+    iconTop: '#1f4f80',
+    iconBottom: '#0f172a',
+  },
+  spotify: {
+    label: 'Spotify',
+    accent: '#1db954',
+    secondary: '#8df0a9',
+    iconTop: '#1db954',
+    iconBottom: '#103d24',
+  },
+  default: {
+    label: 'Streaming',
+    accent: '#f2a01f',
+    secondary: '#ffd28a',
+    iconTop: '#384050',
+    iconBottom: '#171613',
+  },
 };
 
 const SELLERS = ['Marbelly', 'Wendy', 'Kennet'];
@@ -242,6 +288,146 @@ function CustomerLookupInput({ customers, value, onChange }) {
 
 function getServiceCapacity(service) {
   return SERVICE_CAPACITY[service] ?? '';
+}
+
+function getServiceImageTheme(service) {
+  const normalized = String(service || '').toLowerCase();
+  if (normalized.includes('disney')) return SERVICE_IMAGE_THEMES.disney;
+  if (normalized.includes('netflix')) return SERVICE_IMAGE_THEMES.netflix;
+  if (normalized.includes('hbo')) return SERVICE_IMAGE_THEMES.hbo;
+  if (normalized.includes('prime')) return SERVICE_IMAGE_THEMES.prime;
+  if (normalized.includes('spotify')) return SERVICE_IMAGE_THEMES.spotify;
+  return SERVICE_IMAGE_THEMES.default;
+}
+
+function drawRoundRect(context, x, y, width, height, radius) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+}
+
+function drawFittedText(context, text, x, y, maxWidth, fontSize, weight, color) {
+  let size = fontSize;
+  const family = 'Inter, Arial, sans-serif';
+  context.fillStyle = color;
+  do {
+    context.font = `${weight} ${size}px ${family}`;
+    if (context.measureText(text).width <= maxWidth || size <= 14) {
+      break;
+    }
+    size -= 1;
+  } while (size > 14);
+  context.fillText(text, x, y);
+}
+
+function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let nextY = y;
+
+  words.forEach((word) => {
+    const testLine = line ? `${line} ${word}` : word;
+    if (context.measureText(testLine).width > maxWidth && line) {
+      context.fillText(line, x, nextY);
+      line = word;
+      nextY += lineHeight;
+      return;
+    }
+    line = testLine;
+  });
+
+  if (line) {
+    context.fillText(line, x, nextY);
+  }
+}
+
+function sanitizeDownloadName(value) {
+  return String(value || 'cliente')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function downloadSubscriptionAccessImage(customer, subscription) {
+  const theme = getServiceImageTheme(subscription.service__c);
+  const email = subscription.account_email || subscription.cuenta_correo_electronico__c || 'Sin cuenta asignada';
+  const password = subscription.account_password || 'Sin contrasena registrada';
+  const profile = customer?.name || 'Cliente';
+  const canvas = document.createElement('canvas');
+  canvas.width = 900;
+  canvas.height = 620;
+  const context = canvas.getContext('2d');
+
+  context.fillStyle = '#151515';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const iconGradient = context.createLinearGradient(110, 22, 110, 210);
+  iconGradient.addColorStop(0, theme.iconTop);
+  iconGradient.addColorStop(1, theme.iconBottom);
+  drawRoundRect(context, 108, 22, 190, 190, 42);
+  context.fillStyle = iconGradient;
+  context.fill();
+  context.lineWidth = 4;
+  context.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+  context.stroke();
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.10)';
+  context.beginPath();
+  context.ellipse(203, 142, 86, 38, -0.12, 0, Math.PI * 2);
+  context.fill();
+
+  drawFittedText(context, theme.label, 135, 122, 135, 30, '800', '#ffffff');
+  context.strokeStyle = theme.secondary;
+  context.lineWidth = 3;
+  context.beginPath();
+  context.arc(205, 118, 62, Math.PI * 1.1, Math.PI * 1.9);
+  context.stroke();
+
+  const labelX = 52;
+  const valueX = 182;
+  context.font = '700 22px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffffff';
+  context.fillText('Correo:', labelX, 314);
+  drawFittedText(context, email, valueX, 314, 650, 22, '800', theme.accent);
+
+  context.font = '700 22px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffffff';
+  context.fillText('Contrasena:', labelX, 368);
+  drawFittedText(context, password, valueX, 368, 620, 22, '800', '#f2a01f');
+
+  context.font = '700 22px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffffff';
+  context.fillText('Perfil:', labelX, 422);
+  drawFittedText(context, profile, 128, 422, 685, 22, '800', '#3fa16c');
+
+  context.fillStyle = '#f4f4f4';
+  context.fillRect(52, 458, 3, 90);
+
+  drawRoundRect(context, 82, 460, 774, 96, 3);
+  context.fillStyle = '#1f1f1f';
+  context.fill();
+
+  context.font = '600 16px Consolas, monospace';
+  context.fillStyle = '#ff5e4d';
+  drawWrappedText(
+    context,
+    'Como parte de nuestras medidas de seguridad, se realizara una renovacion mensual de contrasenas para proteger la informacion de la cuenta.',
+    90,
+    482,
+    748,
+    30,
+  );
+
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = `credenciales-${sanitizeDownloadName(profile)}-${sanitizeDownloadName(subscription.service__c)}.png`;
+  link.click();
 }
 
 function EmptyState({ icon: Icon, title, text }) {
@@ -443,7 +629,7 @@ function CashTable({ rows, error }) {
   );
 }
 
-function CustomerSubscriptionsPanel({ customer, rows, loading, error }) {
+function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSubscription }) {
   if (!customer) {
     return <EmptyState icon={ClipboardList} title="Sin cliente seleccionado" text="Selecciona un cliente en la tabla." />;
   }
@@ -456,6 +642,10 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error }) {
           <strong>{customer.name}</strong>
           <span>{customer.telefono__c || 'Sin telefono'}</span>
         </div>
+        <button type="button" className="table-action selected-customer__action" onClick={() => onCreateSubscription(customer)}>
+          <Plus size={15} />
+          Nueva suscripcion
+        </button>
       </div>
       <DataError error={error} />
       {loading ? (
@@ -472,19 +662,32 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error }) {
                 <th>Ultimo pago</th>
                 <th>Termina</th>
                 <th>Status</th>
+                <th>Imagen</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>{row.service__c}</td>
-                  <td>{row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
+                  <td>{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
                   <td>{formatDate(row.last_payment_date)}</td>
                   <td>{formatDate(row.expiration_date__c)}</td>
                   <td>
                     <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
                       {row.status__c}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="table-action"
+                      onClick={() => downloadSubscriptionAccessImage(customer, row)}
+                      disabled={!row.account_email && !row.cuenta_correo_electronico__c}
+                      title="Descargar imagen de acceso"
+                    >
+                      <Download size={15} />
+                      Imagen
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -496,15 +699,36 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error }) {
   );
 }
 
-function NewSubscription({ customers, onSaved }) {
+function NewSubscription({ customers, onSaved, draft }) {
   const [form, setForm] = useState(emptySubscription);
   const [accounts, setAccounts] = useState([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
   function updateField(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      if (key === 'service') {
+        return { ...current, service: value, accountEmail: '' };
+      }
+      return { ...current, [key]: value };
+    });
   }
+
+  useEffect(() => {
+    if (!draft?.customerName) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...emptySubscription,
+      seller: current.seller,
+      service: current.service,
+      customerName: draft.customerName,
+      accountEmail: '',
+      startDate: new Date().toISOString().slice(0, 10),
+    }));
+    setMessage('');
+  }, [draft?.requestId]);
 
   useEffect(() => {
     let ignore = false;
@@ -590,7 +814,7 @@ function NewSubscription({ customers, onSaved }) {
   );
 }
 
-function Customers({ rows, error, onSaved }) {
+function Customers({ rows, error, onSaved, onCreateSubscription }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
@@ -736,6 +960,7 @@ function Customers({ rows, error, onSaved }) {
             rows={subscriptions}
             loading={loadingSubscriptions}
             error={subscriptionsError}
+            onCreateSubscription={onCreateSubscription}
           />
         )}
       </section>
@@ -907,6 +1132,15 @@ export default function App() {
   const [accounts, setAccounts] = useState([]);
   const [errors, setErrors] = useState({});
   const [query, setQuery] = useState('');
+  const [subscriptionDraft, setSubscriptionDraft] = useState(null);
+
+  function startSubscriptionForCustomer(customer) {
+    setSubscriptionDraft({
+      requestId: Date.now(),
+      customerName: customer.name,
+    });
+    setActiveTab('new');
+  }
 
   async function refreshData() {
     if (!hasSupabaseConfig) {
@@ -1056,11 +1290,18 @@ export default function App() {
             </div>
           </>
         )}
-        {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} />}
+        {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
         {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
         {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
-        {activeTab === 'customers' && <Customers rows={filteredCustomers} error={errors.customers} onSaved={refreshData} />}
+        {activeTab === 'customers' && (
+          <Customers
+            rows={filteredCustomers}
+            error={errors.customers}
+            onSaved={refreshData}
+            onCreateSubscription={startSubscriptionForCustomer}
+          />
+        )}
       </section>
     </main>
   );

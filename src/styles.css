@@ -336,7 +336,7 @@ table {
 }
 
 .compact-table {
-  min-width: 720px;
+  min-width: 850px;
 }
 
 .accounts-table {
@@ -383,6 +383,11 @@ td {
 .table-action:hover,
 .table-action:focus {
   background: #e4d4bd;
+}
+
+.table-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .empty-state {
@@ -500,6 +505,10 @@ td {
   border: 1px solid #e5dccd;
   border-radius: 8px;
   background: #fff8e8;
+}
+
+.selected-customer__action {
+  margin-left: auto;
 }
 
 .selected-customer strong,
@@ -658,6 +667,16 @@ td {
 
   .field--wide {
     grid-column: auto;
+  }
+
+  .selected-customer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .selected-customer__action {
+    width: 100%;
+    margin-left: 0;
   }
 
   .brand span,
