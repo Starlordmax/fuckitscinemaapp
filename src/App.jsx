@@ -1,7 +1,9 @@
 import {
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
   Clapperboard,
+  ClipboardList,
   DollarSign,
   Film,
   LockKeyhole,
@@ -27,6 +29,7 @@ import {
   getServiceAccounts,
   getSession,
   listAccounts,
+  listCustomerSubscriptions,
   listCustomers,
   onAuthStateChange,
   signInWithPassword,
@@ -429,6 +432,59 @@ function CashTable({ rows, error }) {
   );
 }
 
+function CustomerSubscriptionsPanel({ customer, rows, loading, error }) {
+  if (!customer) {
+    return <EmptyState icon={ClipboardList} title="Sin cliente seleccionado" text="Selecciona un cliente en la tabla." />;
+  }
+
+  return (
+    <div className="stack">
+      <div className="selected-customer">
+        <UserRound size={18} />
+        <div>
+          <strong>{customer.name}</strong>
+          <span>{customer.telefono__c || 'Sin telefono'}</span>
+        </div>
+      </div>
+      <DataError error={error} />
+      {loading ? (
+        <EmptyState icon={RefreshCw} title="Cargando" text="Consultando suscripciones." />
+      ) : rows.length === 0 && !error ? (
+        <EmptyState icon={CalendarDays} title="Sin suscripciones" text="No hay registros para mostrar." />
+      ) : (
+        <div className="table-wrap">
+          <table className="compact-table">
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Cuenta</th>
+                <th>Ultimo pago</th>
+                <th>Termina</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.service__c}</td>
+                  <td>{row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
+                  <td>{formatDate(row.last_payment_date)}</td>
+                  <td>{formatDate(row.expiration_date__c)}</td>
+                  <td>
+                    <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
+                      {row.status__c}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NewSubscription({ customers, onSaved }) {
   const [form, setForm] = useState(emptySubscription);
   const [accounts, setAccounts] = useState([]);
@@ -527,6 +583,56 @@ function Customers({ rows, error, onSaved }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [panelView, setPanelView] = useState('new');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptionsError, setSubscriptionsError] = useState(null);
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
+
+  function openSubscriptions(customer) {
+    setSelectedCustomer(customer);
+    setPanelView('subscriptions');
+  }
+
+  function showSubscriptionsPanel() {
+    if (!selectedCustomer && rows[0]) {
+      setSelectedCustomer(rows[0]);
+    }
+    setPanelView('subscriptions');
+  }
+
+  useEffect(() => {
+    if (panelView !== 'subscriptions' || !selectedCustomer?.id) {
+      return undefined;
+    }
+
+    let ignore = false;
+    async function loadSubscriptions() {
+      setLoadingSubscriptions(true);
+      setSubscriptionsError(null);
+      try {
+        const data = await listCustomerSubscriptions(selectedCustomer.id);
+        if (!ignore) {
+          setSubscriptions(data);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setSubscriptions([]);
+          setSubscriptionsError(error);
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingSubscriptions(false);
+        }
+      }
+    }
+
+    loadSubscriptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, [panelView, selectedCustomer?.id]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -557,14 +663,21 @@ function Customers({ rows, error, onSaved }) {
                 <th>Nombre</th>
                 <th>Telefono</th>
                 <th>Creado</th>
+                <th>Suscripciones</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={selectedCustomer?.id === row.id ? 'selected-row' : ''}>
                   <td>{row.name}</td>
                   <td>{row.telefono__c || '—'}</td>
                   <td>{new Date(row.created_at).toLocaleDateString('es-NI')}</td>
+                  <td>
+                    <button type="button" className="table-action" onClick={() => openSubscriptions(row)}>
+                      <ClipboardList size={15} />
+                      Ver
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -573,18 +686,47 @@ function Customers({ rows, error, onSaved }) {
       </section>
       <section className="panel">
         <div className="panel__header">
-          <h2>Nuevo Cliente</h2>
-          <UserRound size={18} />
+          <h2>{panelView === 'new' ? 'Nuevo Cliente' : 'Suscripciones'}</h2>
+          {panelView === 'new' ? <UserRound size={18} /> : <ClipboardList size={18} />}
         </div>
-        <form className="stack" onSubmit={handleSubmit}>
-          <TextInput label="Nombre" value={name} onChange={setName} />
-          <TextInput label="Telefono" value={phone} onChange={setPhone} type="tel" />
-          <button type="submit" className="primary-button">
-            <Save size={17} />
-            Guardar
+        <div className="panel-tabs">
+          <button
+            type="button"
+            className={panelView === 'new' ? 'panel-tabs__item panel-tabs__item--active' : 'panel-tabs__item'}
+            onClick={() => setPanelView('new')}
+          >
+            <Plus size={15} />
+            Nuevo
           </button>
-          {message && <span className="form-message">{message}</span>}
-        </form>
+          <button
+            type="button"
+            className={
+              panelView === 'subscriptions' ? 'panel-tabs__item panel-tabs__item--active' : 'panel-tabs__item'
+            }
+            onClick={showSubscriptionsPanel}
+          >
+            <ClipboardList size={15} />
+            Suscripciones
+          </button>
+        </div>
+        {panelView === 'new' ? (
+          <form className="stack" onSubmit={handleSubmit}>
+            <TextInput label="Nombre" value={name} onChange={setName} />
+            <TextInput label="Telefono" value={phone} onChange={setPhone} type="tel" />
+            <button type="submit" className="primary-button">
+              <Save size={17} />
+              Guardar
+            </button>
+            {message && <span className="form-message">{message}</span>}
+          </form>
+        ) : (
+          <CustomerSubscriptionsPanel
+            customer={selectedCustomer}
+            rows={subscriptions}
+            loading={loadingSubscriptions}
+            error={subscriptionsError}
+          />
+        )}
       </section>
     </div>
   );

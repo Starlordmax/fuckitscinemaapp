@@ -118,6 +118,40 @@ export async function listCustomers() {
   );
 }
 
+export async function listCustomerSubscriptions(customerId) {
+  const client = ensureClient();
+  const [subscriptionsResult, paymentsResult] = await Promise.all([
+    client
+      .from('subscription__c')
+      .select(
+        'id, service__c, status__c, start_date__c, expiration_date__c, cuenta_correo_electronico__c, metodo_de_pago__c',
+      )
+      .eq('cliente__c', customerId)
+      .order('expiration_date__c', { ascending: false })
+      .limit(100),
+    client
+      .from('dinero_de_cuentas__c')
+      .select('subscription_pagada__c, fecha_de_pago__c')
+      .eq('cliente__c', customerId)
+      .order('fecha_de_pago__c', { ascending: false }),
+  ]);
+
+  const subscriptions = unwrap(subscriptionsResult);
+  const payments = unwrap(paymentsResult);
+  const lastPaymentBySubscription = new Map();
+
+  payments.forEach((payment) => {
+    if (!lastPaymentBySubscription.has(payment.subscription_pagada__c)) {
+      lastPaymentBySubscription.set(payment.subscription_pagada__c, payment.fecha_de_pago__c);
+    }
+  });
+
+  return subscriptions.map((subscription) => ({
+    ...subscription,
+    last_payment_date: lastPaymentBySubscription.get(subscription.id) || subscription.start_date__c,
+  }));
+}
+
 export async function listAccounts() {
   const client = ensureClient();
   return unwrap(
