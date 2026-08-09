@@ -376,7 +376,8 @@ td {
   grid-column: span 2;
 }
 
-.field span {
+.field span,
+.field label {
   color: #665c50;
   font-size: 12px;
   font-weight: 800;
@@ -396,10 +397,90 @@ td {
 
 .field input:focus,
 .field select:focus,
+.lookup:focus-within,
 .search:focus-within,
 .auth:focus-within {
   border-color: #c73535;
   box-shadow: 0 0 0 3px rgba(199, 53, 53, 0.12);
+}
+
+.lookup-field {
+  position: relative;
+}
+
+.lookup {
+  position: relative;
+  border: 1px solid #ddd2c0;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.lookup input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lookup input:focus {
+  box-shadow: none;
+}
+
+.lookup__menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #ddd2c0;
+  border-radius: 8px;
+  background: #fffdf8;
+  box-shadow: 0 14px 30px rgba(44, 35, 24, 0.14);
+}
+
+.lookup__option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-bottom: 1px solid #eee4d4;
+  background: transparent;
+  color: #211f1c;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lookup__option:last-child {
+  border-bottom: 0;
+}
+
+.lookup__option:hover,
+.lookup__option:focus {
+  background: #f6efe4;
+}
+
+.lookup__option span {
+  overflow: hidden;
+  color: #211f1c;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lookup__option small {
+  overflow: hidden;
+  max-width: 110px;
+  color: #766b5c;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lookup__option--new {
+  color: #7a4a16;
 }
 
 .form-actions {

@@ -97,7 +97,7 @@ export async function createCustomer({ name, phone }) {
 export async function createSubscription(payload) {
   const client = ensureClient();
   return unwrap(await client.rpc('creating_new_sub', {
-    nombreDelCliente: payload.customerName,
+    nombreDelCliente: payload.customerName.trim(),
     fechaDeCompra: payload.startDate,
     clienteDe: payload.seller,
     servicioAdquirido: payload.service,

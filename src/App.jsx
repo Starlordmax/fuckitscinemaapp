@@ -156,6 +156,76 @@ function SelectInput({ label, value, onChange, options }) {
   );
 }
 
+function CustomerLookupInput({ customers, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const searchValue = value.trim().toLowerCase();
+  const matches = useMemo(() => {
+    const filtered = searchValue
+      ? customers.filter((customer) => customer.name.toLowerCase().includes(searchValue))
+      : customers;
+
+    return filtered.slice(0, 6);
+  }, [customers, searchValue]);
+  const exactMatch = customers.some((customer) => customer.name.toLowerCase() === searchValue);
+  const showCreateOption = searchValue.length > 0 && !exactMatch;
+  const hasMenu = open && (matches.length > 0 || showCreateOption);
+
+  function selectCustomer(name) {
+    onChange(name);
+    setOpen(false);
+  }
+
+  return (
+    <div className="field lookup-field">
+      <label htmlFor="subscription-customer">Nombre del cliente</label>
+      <div className="lookup">
+        <input
+          id="subscription-customer"
+          type="text"
+          value={value}
+          placeholder="Nombre"
+          autoComplete="off"
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        />
+        {hasMenu && (
+          <div className="lookup__menu">
+            {matches.map((customer) => (
+              <button
+                key={customer.id}
+                type="button"
+                className="lookup__option"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => selectCustomer(customer.name)}
+              >
+                <UserRound size={15} />
+                <span>{customer.name}</span>
+                {customer.telefono__c && <small>{customer.telefono__c}</small>}
+              </button>
+            ))}
+            {showCreateOption && (
+              <button
+                type="button"
+                className="lookup__option lookup__option--new"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => selectCustomer(value.trim())}
+              >
+                <Plus size={15} />
+                <span>{value.trim()}</span>
+                <small>Nuevo cliente</small>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function getServiceCapacity(service) {
   return SERVICE_CAPACITY[service] ?? '';
 }
@@ -359,7 +429,7 @@ function CashTable({ rows, error }) {
   );
 }
 
-function NewSubscription({ onSaved }) {
+function NewSubscription({ customers, onSaved }) {
   const [form, setForm] = useState(emptySubscription);
   const [accounts, setAccounts] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -415,11 +485,10 @@ function NewSubscription({ onSaved }) {
         <Plus size={18} />
       </div>
       <form className="form-grid" onSubmit={handleSubmit}>
-        <TextInput
-          label="Nombre del cliente"
+        <CustomerLookupInput
+          customers={customers}
           value={form.customerName}
           onChange={(value) => updateField('customerName', value)}
-          placeholder="Nombre"
         />
         <SelectInput label="Vendedor" value={form.seller} onChange={(value) => updateField('seller', value)} options={SELLERS} />
         <SelectInput label="Servicio" value={form.service} onChange={(value) => updateField('service', value)} options={SERVICES} />
@@ -779,7 +848,7 @@ export default function App() {
             </div>
           </>
         )}
-        {activeTab === 'new' && <NewSubscription onSaved={refreshData} />}
+        {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} />}
         {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
         {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
