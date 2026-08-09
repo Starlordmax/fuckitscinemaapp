@@ -42,6 +42,13 @@ const SERVICES = [
   'Netflix(cuenta completa)',
 ];
 
+const SERVICE_CAPACITY = {
+  Netflix: 5,
+  'Disney+': 7,
+  Hbomax: 5,
+  Primevideo: 6,
+};
+
 const SELLERS = ['Marbelly', 'Wendy', 'Kennet'];
 const PAYMENT_METHODS = ['Efectivo', 'Transferencia'];
 const STATUSES = ['Pagado', 'No pagado', 'Expirado'];
@@ -141,6 +148,10 @@ function SelectInput({ label, value, onChange, options }) {
       </select>
     </label>
   );
+}
+
+function getServiceCapacity(service) {
+  return SERVICE_CAPACITY[service] ?? '';
 }
 
 function EmptyState({ icon: Icon, title, text }) {
@@ -496,11 +507,25 @@ function Customers({ rows, error, onSaved }) {
 }
 
 function Accounts({ rows, error, onSaved }) {
-  const [form, setForm] = useState({ email: '', service: 'Netflix', capacity: '' });
+  const [form, setForm] = useState({
+    email: '',
+    service: 'Netflix',
+    capacity: getServiceCapacity('Netflix'),
+  });
   const [message, setMessage] = useState('');
 
   function updateField(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      if (key === 'service') {
+        return {
+          ...current,
+          service: value,
+          capacity: getServiceCapacity(value),
+        };
+      }
+
+      return { ...current, [key]: value };
+    });
   }
 
   async function handleSubmit(event) {
@@ -508,7 +533,7 @@ function Accounts({ rows, error, onSaved }) {
     setMessage('');
     try {
       await createAccount(form);
-      setForm({ email: '', service: form.service, capacity: '' });
+      setForm({ email: '', service: form.service, capacity: getServiceCapacity(form.service) });
       setMessage('Cuenta guardada.');
       onSaved();
     } catch (error) {
@@ -557,7 +582,10 @@ function Accounts({ rows, error, onSaved }) {
         <form className="stack" onSubmit={handleSubmit}>
           <TextInput label="Correo" type="email" value={form.email} onChange={(value) => updateField('email', value)} />
           <SelectInput label="Servicio" value={form.service} onChange={(value) => updateField('service', value)} options={SERVICES} />
-          <TextInput label="Capacidad" type="number" value={form.capacity} onChange={(value) => updateField('capacity', value)} />
+          <label className="field">
+            <span>Capacidad</span>
+            <input type="number" value={form.capacity} readOnly />
+          </label>
           <button type="submit" className="primary-button">
             <Save size={17} />
             Guardar

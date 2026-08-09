@@ -11,6 +11,7 @@ npm run dev
 
 La app usa `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
 No uses service role keys en el navegador.
+Si esas variables no existen durante el build, la app usa el proyecto publico configurado para `fuckitscinema`.
 
 ## Base de datos esperada
 
@@ -37,6 +38,7 @@ Configuracion manual equivalente:
 
 - Build Command: `npm ci && npm run build`
 - Publish Directory: `dist`
+- En `render.yaml`, ese campo se llama `staticPublishPath: dist`
 - Rewrite: `/*` -> `/index.html`
 - Environment:
   - `VITE_SUPABASE_URL=https://begipvdiqchgqypwhhpq.supabase.co`

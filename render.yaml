@@ -4,6 +4,7 @@ services:
     name: fuck-its-cinema
     rootDir: .
     buildCommand: npm ci && npm run build
+    # Render dashboard field: Publish Directory
     staticPublishPath: dist
     autoDeployTrigger: commit
     routes:
