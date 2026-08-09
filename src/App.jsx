@@ -93,6 +93,13 @@ function getErrorText(error) {
 
   if (error.message) {
     const message = error.message.toLowerCase();
+    if (
+      message.includes('correo_electronico__c_owner_email_service_uidx') ||
+      message.includes('correo_electronico__c_email_lower_uidx')
+    ) {
+      return 'Ya existe una cuenta con ese correo para ese servicio.';
+    }
+
     if (message.includes('row-level security') || message.includes('permission denied')) {
       return 'No tienes permiso para guardar este registro o tu sesion expiro. Sal y vuelve a entrar.';
     }
