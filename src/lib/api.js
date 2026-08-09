@@ -28,13 +28,11 @@ export async function onAuthStateChange(callback) {
   return client.auth.onAuthStateChange((_event, session) => callback(session));
 }
 
-export async function signInWithEmail(email) {
+export async function signInWithPassword(email, password) {
   const client = ensureClient();
-  const { error } = await client.auth.signInWithOtp({
+  const { error } = await client.auth.signInWithPassword({
     email,
-    options: {
-      emailRedirectTo: window.location.origin,
-    },
+    password,
   });
   if (error) {
     throw error;

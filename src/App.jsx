@@ -4,6 +4,7 @@ import {
   Clapperboard,
   DollarSign,
   Film,
+  LockKeyhole,
   LogOut,
   Mail,
   Plus,
@@ -28,7 +29,7 @@ import {
   listAccounts,
   listCustomers,
   onAuthStateChange,
-  signInWithEmail,
+  signInWithPassword,
   signOut,
 } from './lib/api';
 import { hasSupabaseConfig } from './lib/supabaseClient';
@@ -184,6 +185,7 @@ function DataError({ error }) {
 
 function AuthPanel({ session, onSession }) {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -192,9 +194,9 @@ function AuthPanel({ session, onSession }) {
     setBusy(true);
     setMessage('');
     try {
-      await signInWithEmail(email);
-      setMessage('Revisa tu correo para entrar.');
-      setEmail('');
+      await signInWithPassword(email, password);
+      setMessage('Sesion iniciada.');
+      setPassword('');
     } catch (error) {
       setMessage(getErrorText(error));
     } finally {
@@ -233,6 +235,14 @@ function AuthPanel({ session, onSession }) {
         value={email}
         placeholder="email@cine.com"
         onChange={(event) => setEmail(event.target.value)}
+        required
+      />
+      <LockKeyhole size={18} />
+      <input
+        type="password"
+        value={password}
+        placeholder="Contraseña"
+        onChange={(event) => setPassword(event.target.value)}
         required
       />
       <button type="submit" className="icon-text-button" disabled={busy}>
