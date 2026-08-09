@@ -44,6 +44,7 @@ const SERVICES = [
   'Netflix',
   'Disney+',
   'Hbomax',
+  'Hbomax (cuenta completa)',
   'Primevideo',
   'Spotify',
   'Netflix(cuenta completa)',
