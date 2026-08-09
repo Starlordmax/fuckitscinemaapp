@@ -742,6 +742,7 @@ function Customers({ rows, error, onSaved }) {
 function Accounts({ rows, error, onSaved, session }) {
   const [form, setForm] = useState({
     email: '',
+    password: '',
     service: 'Netflix',
     capacity: getServiceCapacity('Netflix'),
   });
@@ -772,7 +773,7 @@ function Accounts({ rows, error, onSaved, session }) {
 
     try {
       await createAccount(form);
-      setForm({ email: '', service: form.service, capacity: getServiceCapacity(form.service) });
+      setForm({ email: '', password: '', service: form.service, capacity: getServiceCapacity(form.service) });
       setMessage('Cuenta guardada.');
       onSaved();
     } catch (error) {
@@ -793,6 +794,7 @@ function Accounts({ rows, error, onSaved, session }) {
             <thead>
               <tr>
                 <th>Correo</th>
+                <th>Contrasena</th>
                 <th>Servicio</th>
                 <th>Clientes</th>
                 <th>Capacidad</th>
@@ -803,6 +805,7 @@ function Accounts({ rows, error, onSaved, session }) {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>{row.correo_electronico__c}</td>
+                  <td>{row.contrasena__c || '-'}</td>
                   <td>{row.tipo_de_servicio__c}</td>
                   <td>{row.clientes_contador__c}</td>
                   <td>{row.capacidad_clientes__c ?? '—'}</td>
@@ -820,6 +823,7 @@ function Accounts({ rows, error, onSaved, session }) {
         </div>
         <form className="stack" onSubmit={handleSubmit}>
           <TextInput label="Correo" type="email" value={form.email} onChange={(value) => updateField('email', value)} />
+          <TextInput label="Contrasena" value={form.password} onChange={(value) => updateField('password', value)} />
           <SelectInput label="Servicio" value={form.service} onChange={(value) => updateField('service', value)} options={SERVICES} />
           <label className="field">
             <span>Capacidad</span>
