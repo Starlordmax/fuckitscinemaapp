@@ -856,12 +856,41 @@ function SubscriptionEditForm({ subscription, onSaved, onCancel }) {
   );
 }
 
-function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSubscription, onSubscriptionsChanged }) {
+function CustomerSubscriptionsPanel({
+  customer,
+  rows,
+  loading,
+  error,
+  onCreateSubscription,
+  onSubscriptionsChanged,
+  onRenewSubscription,
+}) {
   const [editingSubscription, setEditingSubscription] = useState(null);
+  const [renewingId, setRenewingId] = useState(null);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     setEditingSubscription(null);
+    setMessage('');
   }, [customer?.id]);
+
+  async function handleRenew(row) {
+    if (!onRenewSubscription || renewingId) {
+      return;
+    }
+
+    setRenewingId(row.id);
+    setMessage('');
+    try {
+      const renewalDate = await onRenewSubscription(row);
+      await onSubscriptionsChanged();
+      setMessage(`${row.service__c} renovado desde ${formatDate(renewalDate)}.`);
+    } catch (renewError) {
+      setMessage(getErrorText(renewError));
+    } finally {
+      setRenewingId(null);
+    }
+  }
 
   if (!customer) {
     return <EmptyState icon={ClipboardList} title="Sin cliente seleccionado" text="Selecciona un cliente en la tabla." />;
@@ -906,6 +935,7 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
                 <th>Ultimo pago</th>
                 <th>Termina</th>
                 <th>Status</th>
+                <th>Renovar</th>
                 <th>Editar</th>
                 <th>Imagen</th>
               </tr>
@@ -922,6 +952,17 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
                     <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
                       {row.status__c}
                     </span>
+                  </td>
+                  <td data-label="Renovar">
+                    <button
+                      type="button"
+                      className="table-action"
+                      onClick={() => handleRenew(row)}
+                      disabled={!onRenewSubscription || renewingId === row.id}
+                    >
+                      <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
+                      {renewingId === row.id ? 'Renovando' : 'Renovar'}
+                    </button>
                   </td>
                   <td data-label="Editar">
                     <button type="button" className="table-action" onClick={() => setEditingSubscription(row)}>
@@ -947,6 +988,7 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
           </table>
         </div>
       )}
+      {message && <span className="form-message">{message}</span>}
     </div>
   );
 }
@@ -1257,6 +1299,7 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
                   onCreateSubscription(customer);
                 }}
                 onSubscriptionsChanged={reloadSelectedSubscriptions}
+                onRenewSubscription={renewSubscriptionRow}
               />
             </div>
           </section>
@@ -1440,9 +1483,12 @@ export default function App() {
     setActiveTab('new');
   }
 
-  async function renewExpiredSubscription(row) {
-    const startDate = getRenewalStartDate(row.expirationDate);
-    const price = getServicePrice(row.service) || Number(row.price || 0);
+  async function renewSubscriptionRow(row) {
+    const expirationDate = row.expirationDate || row.expiration_date__c;
+    const service = row.service || row.service__c;
+    const currentPrice = row.price ?? row.precio__c;
+    const startDate = getRenewalStartDate(expirationDate);
+    const price = getServicePrice(service) || Number(currentPrice || 0);
 
     await renewSubscription(row.id, { startDate, price });
     await refreshData();
@@ -1592,13 +1638,13 @@ export default function App() {
           <>
             <Dashboard expired={expired} cash={cash} />
             <div className="dual-panels">
-              <ExpiredTable rows={expired.slice(0, 6)} error={errors.expired} onRenew={renewExpiredSubscription} />
+              <ExpiredTable rows={expired.slice(0, 6)} error={errors.expired} onRenew={renewSubscriptionRow} />
               <CashTable rows={cash.slice(0, 6)} error={errors.cash} />
             </div>
           </>
         )}
         {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
-        {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} onRenew={renewExpiredSubscription} />}
+        {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} onRenew={renewSubscriptionRow} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
         {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
         {activeTab === 'customers' && (
