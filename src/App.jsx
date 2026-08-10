@@ -51,7 +51,6 @@ const SERVICES = [
   'Primevideo',
   'Paramount+',
   'Crunchyroll',
-  'Spotify',
   'Netflix(cuenta completa)',
 ];
 
@@ -105,13 +104,6 @@ const SERVICE_IMAGE_THEMES = {
     secondary: '#7dd3fc',
     iconTop: '#1f4f80',
     iconBottom: '#0f172a',
-  },
-  spotify: {
-    label: 'Spotify',
-    accent: '#1db954',
-    secondary: '#8df0a9',
-    iconTop: '#1db954',
-    iconBottom: '#103d24',
   },
   paramount: {
     label: 'Paramount+',
@@ -353,7 +345,6 @@ function getServiceImageTheme(service) {
   if (normalized.includes('netflix')) return SERVICE_IMAGE_THEMES.netflix;
   if (normalized.includes('hbo')) return SERVICE_IMAGE_THEMES.hbo;
   if (normalized.includes('prime')) return SERVICE_IMAGE_THEMES.prime;
-  if (normalized.includes('spotify')) return SERVICE_IMAGE_THEMES.spotify;
   if (normalized.includes('paramount')) return SERVICE_IMAGE_THEMES.paramount;
   if (normalized.includes('crunchyroll')) return SERVICE_IMAGE_THEMES.crunchyroll;
   return SERVICE_IMAGE_THEMES.default;
