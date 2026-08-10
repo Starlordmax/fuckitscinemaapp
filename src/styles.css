@@ -540,6 +540,60 @@ td {
   font-weight: 700;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(23, 22, 19, 0.46);
+}
+
+.modal-sheet {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(980px, 100%);
+  max-height: calc(100dvh - 40px);
+  border: 1px solid #ddd2c0;
+  border-radius: 8px;
+  background: #fffdf8;
+  box-shadow: 0 24px 70px rgba(23, 22, 19, 0.24);
+  overflow: hidden;
+}
+
+.modal-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee4d4;
+}
+
+.modal-sheet__header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-sheet__header span {
+  display: block;
+  margin-top: 3px;
+  color: #756a5c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.modal-sheet__close {
+  flex: 0 0 auto;
+}
+
+.modal-sheet__body {
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
 .subscription-editor {
   display: grid;
   gap: 12px;
@@ -711,6 +765,7 @@ td {
 @media (max-width: 760px) {
   body {
     padding-bottom: env(safe-area-inset-bottom);
+    overflow-x: hidden;
   }
 
   .app-shell {
@@ -817,6 +872,12 @@ td {
     padding: 14px;
   }
 
+  .workspace,
+  .panel,
+  .table-wrap {
+    max-width: 100%;
+  }
+
   .content-grid,
   .dual-panels,
   .split,
@@ -844,9 +905,11 @@ td {
 
   table,
   .compact-table,
-  .accounts-table {
+  .accounts-table,
+  .expired-table {
     display: block;
     min-width: 0;
+    max-width: 100%;
     width: 100%;
   }
 
@@ -917,6 +980,7 @@ td {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px 12px;
+    max-width: 100%;
   }
 
   .expired-table td {
@@ -961,6 +1025,27 @@ td {
   .expired-table__action .table-action {
     height: 100%;
     min-width: 96px;
+    padding: 0 9px;
+    white-space: nowrap;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    place-items: end center;
+    padding: 10px;
+  }
+
+  .modal-sheet {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal-sheet__header {
+    padding: 12px 12px;
+  }
+
+  .modal-sheet__body {
+    padding: 12px;
   }
 
   .selected-customer {

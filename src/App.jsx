@@ -1083,22 +1083,19 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
-  const [panelView, setPanelView] = useState('new');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
   const [subscriptionsError, setSubscriptionsError] = useState(null);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
 
   function openSubscriptions(customer) {
     setSelectedCustomer(customer);
-    setPanelView('subscriptions');
+    setDetailsOpen(true);
   }
 
-  function showSubscriptionsPanel() {
-    if (!selectedCustomer && rows[0]) {
-      setSelectedCustomer(rows[0]);
-    }
-    setPanelView('subscriptions');
+  function closeSubscriptions() {
+    setDetailsOpen(false);
   }
 
   async function reloadSelectedSubscriptions() {
@@ -1121,7 +1118,7 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
   }
 
   useEffect(() => {
-    if (panelView !== 'subscriptions' || !selectedCustomer?.id) {
+    if (!detailsOpen || !selectedCustomer?.id) {
       return undefined;
     }
 
@@ -1151,7 +1148,29 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
     return () => {
       ignore = true;
     };
-  }, [panelView, selectedCustomer?.id]);
+  }, [detailsOpen, selectedCustomer?.id]);
+
+  useEffect(() => {
+    if (!detailsOpen) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        closeSubscriptions();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [detailsOpen]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -1205,50 +1224,53 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
       </section>
       <section className="panel">
         <div className="panel__header">
-          <h2>{panelView === 'new' ? 'Nuevo Cliente' : 'Suscripciones'}</h2>
-          {panelView === 'new' ? <UserRound size={18} /> : <ClipboardList size={18} />}
+          <h2>Nuevo Cliente</h2>
+          <UserRound size={18} />
         </div>
-        <div className="panel-tabs">
-          <button
-            type="button"
-            className={panelView === 'new' ? 'panel-tabs__item panel-tabs__item--active' : 'panel-tabs__item'}
-            onClick={() => setPanelView('new')}
-          >
-            <Plus size={15} />
-            Nuevo
+        <form className="stack" onSubmit={handleSubmit}>
+          <TextInput label="Nombre" value={name} onChange={setName} />
+          <TextInput label="Telefono" value={phone} onChange={setPhone} type="tel" />
+          <button type="submit" className="primary-button">
+            <Save size={17} />
+            Guardar
           </button>
-          <button
-            type="button"
-            className={
-              panelView === 'subscriptions' ? 'panel-tabs__item panel-tabs__item--active' : 'panel-tabs__item'
-            }
-            onClick={showSubscriptionsPanel}
-          >
-            <ClipboardList size={15} />
-            Suscripciones
-          </button>
-        </div>
-        {panelView === 'new' ? (
-          <form className="stack" onSubmit={handleSubmit}>
-            <TextInput label="Nombre" value={name} onChange={setName} />
-            <TextInput label="Telefono" value={phone} onChange={setPhone} type="tel" />
-            <button type="submit" className="primary-button">
-              <Save size={17} />
-              Guardar
-            </button>
-            {message && <span className="form-message">{message}</span>}
-          </form>
-        ) : (
-          <CustomerSubscriptionsPanel
-            customer={selectedCustomer}
-            rows={subscriptions}
-            loading={loadingSubscriptions}
-            error={subscriptionsError}
-            onCreateSubscription={onCreateSubscription}
-            onSubscriptionsChanged={reloadSelectedSubscriptions}
-          />
-        )}
+          {message && <span className="form-message">{message}</span>}
+        </form>
       </section>
+      {detailsOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeSubscriptions}>
+          <section
+            className="modal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customer-subscriptions-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-sheet__header">
+              <div>
+                <h2 id="customer-subscriptions-title">Suscripciones</h2>
+                <span>{selectedCustomer?.name || 'Cliente'}</span>
+              </div>
+              <button type="button" className="icon-button modal-sheet__close" onClick={closeSubscriptions} title="Cerrar">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-sheet__body">
+              <CustomerSubscriptionsPanel
+                customer={selectedCustomer}
+                rows={subscriptions}
+                loading={loadingSubscriptions}
+                error={subscriptionsError}
+                onCreateSubscription={(customer) => {
+                  closeSubscriptions();
+                  onCreateSubscription(customer);
+                }}
+                onSubscriptionsChanged={reloadSelectedSubscriptions}
+              />
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
