@@ -1112,7 +1112,7 @@ function NewSubscription({ customers, onSaved, draft }) {
   );
 }
 
-function Customers({ rows, error, onSaved, onCreateSubscription }) {
+function Customers({ rows, error, onSaved, onCreateSubscription, onRenewSubscription }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
@@ -1299,7 +1299,7 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
                   onCreateSubscription(customer);
                 }}
                 onSubscriptionsChanged={reloadSelectedSubscriptions}
-                onRenewSubscription={renewSubscriptionRow}
+                onRenewSubscription={onRenewSubscription}
               />
             </div>
           </section>
@@ -1653,6 +1653,7 @@ export default function App() {
             error={errors.customers}
             onSaved={refreshData}
             onCreateSubscription={startSubscriptionForCustomer}
+            onRenewSubscription={renewSubscriptionRow}
           />
         )}
       </section>
