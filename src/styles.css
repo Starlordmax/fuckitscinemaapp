@@ -651,21 +651,38 @@ td {
     z-index: 2;
     flex-direction: row;
     align-items: center;
+    gap: 14px;
     overflow-x: auto;
+    padding: 14px 16px;
   }
 
   .nav {
     display: flex;
+    flex: 1 0 auto;
+    min-width: max-content;
   }
 
   .nav__item {
     width: auto;
+    min-width: max-content;
   }
 
-  .topbar,
-  .topbar__actions {
-    align-items: stretch;
+  .topbar {
+    align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topbar__actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .search {
+    flex: 1 1 240px;
+  }
+
+  .auth {
+    flex: 1 1 320px;
   }
 
   .search input,
@@ -675,8 +692,112 @@ td {
 }
 
 @media (max-width: 760px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app-shell {
+    display: block;
+    min-height: auto;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: block;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 249, 238, 0.16);
+    box-shadow: 0 -10px 24px rgba(23, 22, 19, 0.18);
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(48px, 1fr));
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .nav__item {
+    justify-content: center;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 8px;
+  }
+
   .workspace {
-    padding: 16px;
+    padding: 14px 14px 88px;
+  }
+
+  .topbar {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .topbar__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  .search,
+  .auth {
+    min-width: 0;
+  }
+
+  .auth {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .auth input {
+    flex: 1 1 calc(100% - 34px);
+    min-height: 34px;
+    width: auto;
+  }
+
+  .auth .icon-text-button {
+    flex: 1 1 100%;
+  }
+
+  .auth--signed {
+    flex-wrap: nowrap;
+  }
+
+  .auth--signed span {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .auth--signed .icon-text-button {
+    flex: 0 0 auto;
+  }
+
+  .icon-button {
+    width: 44px;
+  }
+
+  .metric {
+    min-height: 78px;
+    padding: 14px;
+  }
+
+  .panel {
+    padding: 14px;
   }
 
   .content-grid,
@@ -688,6 +809,91 @@ td {
 
   .field--wide {
     grid-column: auto;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table,
+  .compact-table,
+  .accounts-table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  tr {
+    display: grid;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #eee4d4;
+    border-radius: 8px;
+    background: #fffdf8;
+  }
+
+  td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0e7d8;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  td:last-child {
+    border-bottom: 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    color: #756a5c;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td .chip,
+  td .table-action {
+    margin-left: auto;
+  }
+
+  .selected-row {
+    background: #fff4df;
+  }
+
+  .selected-row td {
+    background: transparent;
+  }
+
+  .table-action {
+    min-width: 108px;
   }
 
   .selected-customer {
@@ -703,5 +909,45 @@ td {
   .brand span,
   .nav__item span {
     display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .workspace {
+    padding: 10px 10px 84px;
+  }
+
+  .panel,
+  .metric {
+    padding: 12px;
+  }
+
+  .panel-tabs__item {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .selected-customer {
+    padding: 9px 10px;
+  }
+
+  td {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+  }
+
+  td::before {
+    flex-basis: auto;
+  }
+
+  td .chip,
+  td .table-action {
+    margin-left: 0;
+  }
+
+  .table-action {
+    width: 100%;
   }
 }

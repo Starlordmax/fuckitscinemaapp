@@ -607,11 +607,11 @@ function ExpiredTable({ rows, error }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.clienteName}</td>
-                  <td>{formatDate(row.expirationDate)}</td>
-                  <td>{row.service}</td>
-                  <td>{formatCurrency(row.price)}</td>
-                  <td>{row.clienteDe || '—'}</td>
+                  <td data-label="Cliente">{row.clienteName}</td>
+                  <td data-label="Vence">{formatDate(row.expirationDate)}</td>
+                  <td data-label="Servicio">{row.service}</td>
+                  <td data-label="Precio">{formatCurrency(row.price)}</td>
+                  <td data-label="Cliente de">{row.clienteDe || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -648,16 +648,16 @@ function CashTable({ rows, error }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.Id || row.id}>
-                  <td>
+                  <td data-label="Recolectado">
                     <span className={`chip ${row.Collected__c === 'Si' ? 'chip--ok' : ''}`}>
                       {row.Collected__c || 'No'}
                     </span>
                   </td>
-                  <td>{row.Cliente__c}</td>
-                  <td>{row.servicio_pagado__c}</td>
-                  <td>{formatDate(row.Fecha_de_pago__c)}</td>
-                  <td>{formatCurrency(row.Total__c)}</td>
-                  <td>{row.vendedor__c || '—'}</td>
+                  <td data-label="Cliente">{row.Cliente__c}</td>
+                  <td data-label="Servicio">{row.servicio_pagado__c}</td>
+                  <td data-label="Fecha">{formatDate(row.Fecha_de_pago__c)}</td>
+                  <td data-label="Total">{formatCurrency(row.Total__c)}</td>
+                  <td data-label="Vendedor">{row.vendedor__c || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -863,23 +863,23 @@ function CustomerSubscriptionsPanel({ customer, rows, loading, error, onCreateSu
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className={editingSubscription?.id === row.id ? 'selected-row' : ''}>
-                  <td>{row.service__c}</td>
-                  <td>{formatCurrency(row.precio__c)}</td>
-                  <td>{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
-                  <td>{formatDate(row.last_payment_date)}</td>
-                  <td>{formatDate(row.expiration_date__c)}</td>
-                  <td>
+                  <td data-label="Servicio">{row.service__c}</td>
+                  <td data-label="Precio">{formatCurrency(row.precio__c)}</td>
+                  <td data-label="Cuenta">{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
+                  <td data-label="Ultimo pago">{formatDate(row.last_payment_date)}</td>
+                  <td data-label="Termina">{formatDate(row.expiration_date__c)}</td>
+                  <td data-label="Status">
                     <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
                       {row.status__c}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Editar">
                     <button type="button" className="table-action" onClick={() => setEditingSubscription(row)}>
                       <Pencil size={15} />
                       Editar
                     </button>
                   </td>
-                  <td>
+                  <td data-label="Imagen">
                     <button
                       type="button"
                       className="table-action"
@@ -1129,10 +1129,10 @@ function Customers({ rows, error, onSaved, onCreateSubscription }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className={selectedCustomer?.id === row.id ? 'selected-row' : ''}>
-                  <td>{row.name}</td>
-                  <td>{row.telefono__c || '—'}</td>
-                  <td>{new Date(row.created_at).toLocaleDateString('es-NI')}</td>
-                  <td>
+                  <td data-label="Nombre">{row.name}</td>
+                  <td data-label="Telefono">{row.telefono__c || '—'}</td>
+                  <td data-label="Creado">{new Date(row.created_at).toLocaleDateString('es-NI')}</td>
+                  <td data-label="Suscripciones">
                     <button type="button" className="table-action" onClick={() => openSubscriptions(row)}>
                       <ClipboardList size={15} />
                       Ver
@@ -1290,13 +1290,13 @@ function Accounts({ rows, error, onSaved, session }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className={editingAccount?.id === row.id ? 'selected-row' : ''}>
-                  <td>{row.correo_electronico__c}</td>
-                  <td>{row.contrasena__c || '-'}</td>
-                  <td>{row.tipo_de_servicio__c}</td>
-                  <td>{row.clientes_contador__c}</td>
-                  <td>{row.capacidad_clientes__c ?? '—'}</td>
-                  <td>{row.activo__c ? 'Si' : 'No'}</td>
-                  <td>
+                  <td data-label="Correo">{row.correo_electronico__c}</td>
+                  <td data-label="Contrasena">{row.contrasena__c || '-'}</td>
+                  <td data-label="Servicio">{row.tipo_de_servicio__c}</td>
+                  <td data-label="Clientes">{row.clientes_contador__c}</td>
+                  <td data-label="Capacidad">{row.capacidad_clientes__c ?? '—'}</td>
+                  <td data-label="Activa">{row.activo__c ? 'Si' : 'No'}</td>
+                  <td data-label="Acciones">
                     <button type="button" className="table-action" onClick={() => editAccount(row)}>
                       <Pencil size={15} />
                       Editar
