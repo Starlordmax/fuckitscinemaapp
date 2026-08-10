@@ -343,6 +343,23 @@ table {
   min-width: 860px;
 }
 
+.expired-table {
+  min-width: 760px;
+}
+
+.expired-table__customer strong {
+  font-weight: 800;
+}
+
+.mobile-expired-details {
+  display: none;
+}
+
+.expired-table__message {
+  display: block;
+  margin-top: 10px;
+}
+
 th,
 td {
   padding: 11px 10px;
@@ -896,6 +913,56 @@ td {
     min-width: 108px;
   }
 
+  .expired-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  .expired-table td {
+    min-height: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .expired-table td::before {
+    display: none;
+  }
+
+  .expired-table__customer {
+    display: grid;
+    gap: 3px;
+    text-align: left;
+  }
+
+  .expired-table__customer strong {
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-expired-details {
+    display: block;
+    color: #756a5c;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .expired-table__date,
+  .expired-table__service,
+  .expired-table__price,
+  .expired-table td[data-label='Cliente de'] {
+    display: none;
+  }
+
+  .expired-table__action {
+    align-self: stretch;
+  }
+
+  .expired-table__action .table-action {
+    height: 100%;
+    min-width: 96px;
+  }
+
   .selected-customer {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -949,5 +1016,19 @@ td {
 
   .table-action {
     width: 100%;
+  }
+
+  .expired-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .expired-table__customer {
+    display: grid;
+    gap: 3px;
+  }
+
+  .expired-table__action .table-action {
+    width: auto;
+    min-width: 86px;
   }
 }

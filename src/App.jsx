@@ -35,6 +35,7 @@ import {
   listCustomerSubscriptions,
   listCustomers,
   onAuthStateChange,
+  renewSubscription,
   signInWithPassword,
   signOut,
   updateAccount,
@@ -167,6 +168,25 @@ function formatDate(value) {
     month: 'short',
     day: '2-digit',
   }).format(new Date(`${value}T00:00:00`));
+}
+
+function toDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getRenewalStartDate(expirationDate, referenceDate = new Date()) {
+  const parsedExpiration = expirationDate ? new Date(`${expirationDate}T00:00:00`) : null;
+  const sourceDate =
+    parsedExpiration && !Number.isNaN(parsedExpiration.getTime()) ? parsedExpiration : referenceDate;
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
+  const lastDayInCurrentMonth = new Date(year, month + 1, 0).getDate();
+  const day = Math.min(sourceDate.getDate(), lastDayInCurrentMonth);
+
+  return toDateInputValue(new Date(year, month, day));
 }
 
 function getErrorText(error) {
@@ -582,7 +602,27 @@ function Dashboard({ expired, cash }) {
   );
 }
 
-function ExpiredTable({ rows, error }) {
+function ExpiredTable({ rows, error, onRenew }) {
+  const [renewingId, setRenewingId] = useState(null);
+  const [message, setMessage] = useState('');
+
+  async function handleRenew(row) {
+    if (!onRenew || renewingId) {
+      return;
+    }
+
+    setRenewingId(row.id);
+    setMessage('');
+    try {
+      const renewalDate = await onRenew(row);
+      setMessage(`${row.clienteName} renovado desde ${formatDate(renewalDate)}.`);
+    } catch (renewError) {
+      setMessage(getErrorText(renewError));
+    } finally {
+      setRenewingId(null);
+    }
+  }
+
   return (
     <section className="panel">
       <div className="panel__header">
@@ -594,23 +634,41 @@ function ExpiredTable({ rows, error }) {
         <EmptyState icon={Film} title="Sin vencidas" text="No hay registros para mostrar." />
       ) : (
         <div className="table-wrap">
-          <table>
+          <table className="expired-table">
             <thead>
               <tr>
                 <th>Cliente</th>
                 <th>Vence</th>
                 <th>Servicio</th>
                 <th>Precio</th>
+                <th>Renovar</th>
                 <th>Cliente de</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td data-label="Cliente">{row.clienteName}</td>
-                  <td data-label="Vence">{formatDate(row.expirationDate)}</td>
-                  <td data-label="Servicio">{row.service}</td>
-                  <td data-label="Precio">{formatCurrency(row.price)}</td>
+                  <td className="expired-table__customer" data-label="Cliente">
+                    <strong>{row.clienteName}</strong>
+                    <span className="mobile-expired-details">
+                      {row.service} / {formatCurrency(row.price)} / Vence {formatDate(row.expirationDate)} /{' '}
+                      {row.clienteDe || 'Sin vendedor'}
+                    </span>
+                  </td>
+                  <td className="expired-table__date" data-label="Vence">{formatDate(row.expirationDate)}</td>
+                  <td className="expired-table__service" data-label="Servicio">{row.service}</td>
+                  <td className="expired-table__price" data-label="Precio">{formatCurrency(row.price)}</td>
+                  <td className="expired-table__action" data-label="Renovar">
+                    <button
+                      type="button"
+                      className="table-action"
+                      onClick={() => handleRenew(row)}
+                      disabled={!onRenew || renewingId === row.id}
+                    >
+                      <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
+                      {renewingId === row.id ? 'Renovando' : 'Renovar'}
+                    </button>
+                  </td>
                   <td data-label="Cliente de">{row.clienteDe || '—'}</td>
                 </tr>
               ))}
@@ -618,6 +676,7 @@ function ExpiredTable({ rows, error }) {
           </table>
         </div>
       )}
+      {message && <span className="form-message expired-table__message">{message}</span>}
     </section>
   );
 }
@@ -1368,6 +1427,15 @@ export default function App() {
     setActiveTab('new');
   }
 
+  async function renewExpiredSubscription(row) {
+    const startDate = getRenewalStartDate(row.expirationDate);
+    const price = getServicePrice(row.service) || Number(row.price || 0);
+
+    await renewSubscription(row.id, { startDate, price });
+    await refreshData();
+    return startDate;
+  }
+
   async function refreshData() {
     if (!hasSupabaseConfig) {
       setConnection({ ok: false, label: 'Sin configuracion' });
@@ -1511,13 +1579,13 @@ export default function App() {
           <>
             <Dashboard expired={expired} cash={cash} />
             <div className="dual-panels">
-              <ExpiredTable rows={expired.slice(0, 6)} error={errors.expired} />
+              <ExpiredTable rows={expired.slice(0, 6)} error={errors.expired} onRenew={renewExpiredSubscription} />
               <CashTable rows={cash.slice(0, 6)} error={errors.cash} />
             </div>
           </>
         )}
         {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
-        {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} />}
+        {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} onRenew={renewExpiredSubscription} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
         {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
         {activeTab === 'customers' && (

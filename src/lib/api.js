@@ -120,6 +120,27 @@ export async function updateSubscription(id, payload) {
   }));
 }
 
+export async function renewSubscription(id, payload) {
+  const client = ensureClient();
+  const values = {
+    start_date__c: payload.startDate,
+    status__c: 'Pagado',
+  };
+
+  if (payload.price !== undefined && payload.price !== null && payload.price !== '') {
+    values.precio__c = Number(payload.price);
+  }
+
+  return unwrap(
+    await client
+      .from('subscription__c')
+      .update(values)
+      .eq('id', id)
+      .select('id, start_date__c, expiration_date__c, status__c, precio__c')
+      .single(),
+  );
+}
+
 export async function listCustomers() {
   const client = ensureClient();
   return unwrap(
