@@ -82,42 +82,70 @@ const SERVICE_IMAGE_THEMES = {
     logo: '/platform-logos/disney.png',
     accent: '#2d8eff',
     deep: '#06225c',
+    background: ['#061c63', '#147bf5', '#eaf5ff'],
+    soft: '#eef7ff',
+    border: '#b8dcff',
+    labelColor: '#174b8f',
   },
   netflix: {
     label: 'NETFLIX',
     logo: '/platform-logos/netflix.png',
     accent: '#e50914',
     deep: '#210006',
+    background: ['#210006', '#e50914', '#fff4f4'],
+    soft: '#fff4f4',
+    border: '#ffc2c2',
+    labelColor: '#8f2433',
   },
   hbo: {
     label: 'HBO Max',
     logo: '/platform-logos/hbomax.png',
     accent: '#7c5cff',
     deep: '#15135c',
+    background: ['#15135c', '#7c3cff', '#f4efff'],
+    soft: '#f5f0ff',
+    border: '#d8ccff',
+    labelColor: '#4f3aa3',
   },
   prime: {
     label: 'Prime Video',
     logo: '/platform-logos/primevideo.png',
     accent: '#00a8e1',
     deep: '#07345a',
+    background: ['#06384f', '#00a8e1', '#ebfbff'],
+    soft: '#eefbff',
+    border: '#b9ecff',
+    labelColor: '#08779c',
   },
   paramount: {
     label: 'Paramount+',
     logo: '/platform-logos/paramount.png',
     accent: '#2d8eff',
     deep: '#07348a',
+    background: ['#07348a', '#1d7cff', '#eef6ff'],
+    soft: '#eef6ff',
+    border: '#b8dcff',
+    labelColor: '#174b8f',
   },
   crunchyroll: {
     label: 'Crunchyroll',
     logo: '/platform-logos/crunchyroll.png',
     accent: '#f47521',
     deep: '#6f2d00',
+    background: ['#6f2d00', '#f47521', '#fff3e8'],
+    soft: '#fff3e8',
+    border: '#ffd0a8',
+    labelColor: '#9a430a',
   },
   default: {
     label: 'Streaming',
     logo: '',
     accent: '#f2a01f',
     deep: '#430008',
+    background: ['#430008', '#b9001f', '#fff4f4'],
+    soft: '#fff4f4',
+    border: '#ffc2c2',
+    labelColor: '#8f2433',
   },
 };
 
@@ -408,11 +436,11 @@ function drawFittedText(context, text, x, y, maxWidth, fontSize, weight, color) 
   context.fillText(text, x, y);
 }
 
-function drawCredentialField(context, label, value, x, y, width, color) {
-  fillRoundRect(context, x, y, width, 118, 24, '#fff7f7');
-  strokeRoundRect(context, x, y, width, 118, 24, '#ffd2d2', 2);
+function drawCredentialField(context, label, value, x, y, width, color, theme) {
+  fillRoundRect(context, x, y, width, 118, 24, theme.soft);
+  strokeRoundRect(context, x, y, width, 118, 24, theme.border, 2);
   context.font = '800 20px Inter, Arial, sans-serif';
-  context.fillStyle = '#8f2433';
+  context.fillStyle = theme.labelColor;
   context.fillText(label.toUpperCase(), x + 28, y + 38);
   drawFittedText(context, value, x + 28, y + 88, width - 56, 31, '900', color);
 }
@@ -459,11 +487,12 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   canvas.width = 1080;
   canvas.height = 1350;
   const context = canvas.getContext('2d');
+  const [backgroundTop, backgroundMiddle, backgroundBottom] = theme.background;
 
   const background = context.createLinearGradient(0, 0, 0, canvas.height);
-  background.addColorStop(0, '#430008');
-  background.addColorStop(0.58, '#b9001f');
-  background.addColorStop(1, '#fff4f4');
+  background.addColorStop(0, backgroundTop);
+  background.addColorStop(0.58, backgroundMiddle);
+  background.addColorStop(1, backgroundBottom);
   context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -493,37 +522,37 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   fillRoundRect(context, 64, 162, 952, 242, 34, '#ffffff');
   strokeRoundRect(context, 64, 162, 952, 242, 34, 'rgba(255, 255, 255, 0.78)', 2);
 
-  fillRoundRect(context, 778, 200, 188, 166, 30, '#fff4f4');
-  strokeRoundRect(context, 778, 200, 188, 166, 30, '#ffc2c2', 2);
+  fillRoundRect(context, 778, 200, 188, 166, 30, theme.soft);
+  strokeRoundRect(context, 778, 200, 188, 166, 30, theme.border, 2);
   if (!drawContainedImage(context, logo, 802, 222, 140, 122)) {
     drawFittedText(context, theme.label, 806, 292, 134, 30, '900', theme.accent);
   }
 
   context.font = '800 22px Inter, Arial, sans-serif';
-  context.fillStyle = '#8f2433';
+  context.fillStyle = theme.labelColor;
   context.fillText('SERVICIO', 112, 228);
-  drawFittedText(context, service, 112, 286, 610, 58, '900', '#430008');
+  drawFittedText(context, service, 112, 286, 610, 58, '900', theme.deep);
 
-  fillRoundRect(context, 112, 318, 260, 44, 22, '#fff0f0');
+  fillRoundRect(context, 112, 318, 260, 44, 22, theme.soft);
   context.font = '800 18px Inter, Arial, sans-serif';
-  context.fillStyle = '#c90022';
+  context.fillStyle = theme.accent;
   context.fillText(`Vence ${expirationDate}`, 136, 347);
 
   fillRoundRect(context, 64, 446, 952, 664, 34, '#ffffff');
-  strokeRoundRect(context, 64, 446, 952, 664, 34, '#ffc2c2', 2);
+  strokeRoundRect(context, 64, 446, 952, 664, 34, theme.border, 2);
 
   context.font = '900 34px Inter, Arial, sans-serif';
-  context.fillStyle = '#430008';
+  context.fillStyle = theme.deep;
   context.fillText('Datos de acceso', 112, 514);
 
-  drawCredentialField(context, 'Correo', email, 112, 552, 856, '#c90022');
-  drawCredentialField(context, 'Contrasena', password, 112, 692, 856, '#430008');
-  drawCredentialField(context, 'Perfil', profile, 112, 832, 416, '#c90022');
-  drawCredentialField(context, 'Plataforma', theme.label, 552, 832, 416, theme.accent);
+  drawCredentialField(context, 'Correo', email, 112, 552, 856, theme.accent, theme);
+  drawCredentialField(context, 'Contrasena', password, 112, 692, 856, theme.deep, theme);
+  drawCredentialField(context, 'Perfil', profile, 112, 832, 416, theme.accent, theme);
+  drawCredentialField(context, 'Plataforma', theme.label, 552, 832, 416, theme.accent, theme);
 
-  fillRoundRect(context, 112, 992, 856, 82, 24, '#fff0f0');
+  fillRoundRect(context, 112, 992, 856, 82, 24, theme.soft);
   context.font = '800 19px Inter, Arial, sans-serif';
-  context.fillStyle = '#7a0012';
+  context.fillStyle = theme.deep;
   drawWrappedText(
     context,
     'Por seguridad, la contrasena puede renovarse cada mes. Mantenga estos datos privados y no los comparta fuera de su perfil asignado.',
@@ -533,7 +562,7 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
     27,
   );
 
-  fillRoundRect(context, 64, 1154, 952, 116, 32, '#430008');
+  fillRoundRect(context, 64, 1154, 952, 116, 32, theme.deep);
   context.font = '900 28px Inter, Arial, sans-serif';
   context.fillStyle = '#ffffff';
   context.fillText('Gracias por preferir Fuck Its Cinema', 112, 1214);
