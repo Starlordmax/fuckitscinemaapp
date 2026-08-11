@@ -124,6 +124,7 @@ const SERVICE_IMAGE_THEMES = {
 const SELLERS = ['Marbelly', 'Wendy', 'Kennet'];
 const PAYMENT_METHODS = ['Efectivo', 'Transferencia'];
 const STATUSES = ['Pagado', 'No pagado', 'Expirado'];
+const APP_LOGO_SRC = '/app-logo.png';
 
 const emptySubscription = {
   customerName: '',
@@ -453,7 +454,7 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   const profile = customer?.name || 'Cliente';
   const service = subscription.service__c || theme.label;
   const expirationDate = formatDate(subscription.expiration_date__c);
-  const logo = await loadCanvasImage(theme.logo);
+  const [logo, appLogo] = await Promise.all([loadCanvasImage(theme.logo), loadCanvasImage(APP_LOGO_SRC)]);
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
   canvas.height = 1350;
@@ -482,6 +483,12 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   context.font = '700 20px Inter, Arial, sans-serif';
   context.fillStyle = '#ffdada';
   context.fillText('Credenciales oficiales de acceso', 64, 112);
+
+  fillRoundRect(context, 890, 40, 126, 126, 28, '#ffffff');
+  strokeRoundRect(context, 890, 40, 126, 126, 28, 'rgba(255, 255, 255, 0.72)', 2);
+  if (!drawContainedImage(context, appLogo, 904, 54, 98, 98)) {
+    drawFittedText(context, 'FIC', 924, 116, 58, 34, '900', '#c90022');
+  }
 
   fillRoundRect(context, 64, 162, 952, 242, 34, '#ffffff');
   strokeRoundRect(context, 64, 162, 952, 242, 34, 'rgba(255, 255, 255, 0.78)', 2);
@@ -1646,7 +1653,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand__mark">
-            <Clapperboard size={24} />
+            <img src={APP_LOGO_SRC} alt="Joder Esto Si Es Cine" />
           </div>
           <div>
             <strong>Fuck Its Cinema</strong>
