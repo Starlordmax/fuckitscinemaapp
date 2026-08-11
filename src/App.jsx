@@ -475,11 +475,17 @@ function sanitizeDownloadName(value) {
     .toLowerCase();
 }
 
+function getCredentialProfileName(value) {
+  const name = String(value || '').trim();
+  const visibleName = name.split('(')[0].trim();
+  return visibleName || name || 'Cliente';
+}
+
 async function downloadSubscriptionAccessImage(customer, subscription) {
   const theme = getServiceImageTheme(subscription.service__c);
   const email = subscription.account_email || subscription.cuenta_correo_electronico__c || 'Sin cuenta asignada';
   const password = subscription.account_password || 'Sin contraseña registrada';
-  const profile = customer?.name || 'Cliente';
+  const profile = getCredentialProfileName(customer?.name);
   const service = subscription.service__c || theme.label;
   const expirationDate = formatDate(subscription.expiration_date__c);
   const [logo, appLogo] = await Promise.all([loadCanvasImage(theme.logo), loadCanvasImage(APP_LOGO_SRC)]);
