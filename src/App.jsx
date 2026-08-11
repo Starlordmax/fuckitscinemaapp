@@ -478,7 +478,7 @@ function sanitizeDownloadName(value) {
 async function downloadSubscriptionAccessImage(customer, subscription) {
   const theme = getServiceImageTheme(subscription.service__c);
   const email = subscription.account_email || subscription.cuenta_correo_electronico__c || 'Sin cuenta asignada';
-  const password = subscription.account_password || 'Sin contrasena registrada';
+  const password = subscription.account_password || 'Sin contraseña registrada';
   const profile = customer?.name || 'Cliente';
   const service = subscription.service__c || theme.label;
   const expirationDate = formatDate(subscription.expiration_date__c);
@@ -546,7 +546,7 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   context.fillText('Datos de acceso', 112, 514);
 
   drawCredentialField(context, 'Correo', email, 112, 552, 856, theme.accent, theme);
-  drawCredentialField(context, 'Contrasena', password, 112, 692, 856, theme.deep, theme);
+  drawCredentialField(context, 'Contraseña', password, 112, 692, 856, theme.deep, theme);
   drawCredentialField(context, 'Perfil', profile, 112, 832, 416, theme.accent, theme);
   drawCredentialField(context, 'Plataforma', theme.label, 552, 832, 416, theme.accent, theme);
 
@@ -555,7 +555,7 @@ async function downloadSubscriptionAccessImage(customer, subscription) {
   context.fillStyle = theme.deep;
   drawWrappedText(
     context,
-    'Por seguridad, la contrasena puede renovarse cada mes. Mantenga estos datos privados y no los comparta fuera de su perfil asignado.',
+    'Por seguridad, la contraseña puede renovarse cada mes. Mantenga estos datos privados y no los comparta fuera de su perfil asignado.',
     140,
     1024,
     800,
@@ -1490,7 +1490,7 @@ function Accounts({ rows, error, onSaved, session }) {
             <thead>
               <tr>
                 <th>Correo</th>
-                <th>Contrasena</th>
+                <th>Contraseña</th>
                 <th>Servicio</th>
                 <th>Clientes</th>
                 <th>Capacidad</th>
@@ -1502,7 +1502,7 @@ function Accounts({ rows, error, onSaved, session }) {
               {rows.map((row) => (
                 <tr key={row.id} className={editingAccount?.id === row.id ? 'selected-row' : ''}>
                   <td data-label="Correo">{row.correo_electronico__c}</td>
-                  <td data-label="Contrasena">{row.contrasena__c || '-'}</td>
+                  <td data-label="Contraseña">{row.contrasena__c || '-'}</td>
                   <td data-label="Servicio">{row.tipo_de_servicio__c}</td>
                   <td data-label="Clientes">{row.clientes_contador__c}</td>
                   <td data-label="Capacidad">{row.capacidad_clientes__c ?? '—'}</td>
@@ -1526,7 +1526,7 @@ function Accounts({ rows, error, onSaved, session }) {
         </div>
         <form className="stack" onSubmit={handleSubmit}>
           <TextInput label="Correo" type="email" value={form.email} onChange={(value) => updateField('email', value)} />
-          <TextInput label="Contrasena" value={form.password} onChange={(value) => updateField('password', value)} />
+          <TextInput label="Contraseña" value={form.password} onChange={(value) => updateField('password', value)} />
           <SelectInput label="Servicio" value={form.service} onChange={(value) => updateField('service', value)} options={SERVICES} />
           <label className="field">
             <span>Capacidad</span>
