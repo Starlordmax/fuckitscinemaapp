@@ -79,52 +79,45 @@ const SERVICE_PRICES = {
 const SERVICE_IMAGE_THEMES = {
   disney: {
     label: 'Disney+',
+    logo: '/platform-logos/disney.png',
     accent: '#2d8eff',
-    secondary: '#48d5ff',
-    iconTop: '#3357b8',
-    iconBottom: '#36b7e2',
+    deep: '#06225c',
   },
   netflix: {
     label: 'NETFLIX',
+    logo: '/platform-logos/netflix.png',
     accent: '#e50914',
-    secondary: '#ff8a8a',
-    iconTop: '#ad0710',
-    iconBottom: '#241111',
+    deep: '#210006',
   },
   hbo: {
-    label: 'MAX',
+    label: 'HBO Max',
+    logo: '/platform-logos/hbomax.png',
     accent: '#7c5cff',
-    secondary: '#54c4ff',
-    iconTop: '#29235c',
-    iconBottom: '#111827',
+    deep: '#15135c',
   },
   prime: {
     label: 'Prime Video',
+    logo: '/platform-logos/primevideo.png',
     accent: '#00a8e1',
-    secondary: '#7dd3fc',
-    iconTop: '#1f4f80',
-    iconBottom: '#0f172a',
+    deep: '#07345a',
   },
   paramount: {
     label: 'Paramount+',
+    logo: '/platform-logos/paramount.png',
     accent: '#2d8eff',
-    secondary: '#8fc7ff',
-    iconTop: '#0b5fe8',
-    iconBottom: '#07348a',
+    deep: '#07348a',
   },
   crunchyroll: {
     label: 'Crunchyroll',
+    logo: '/platform-logos/crunchyroll.png',
     accent: '#f47521',
-    secondary: '#ffb26b',
-    iconTop: '#f47521',
-    iconBottom: '#8a3b0a',
+    deep: '#6f2d00',
   },
   default: {
     label: 'Streaming',
+    logo: '',
     accent: '#f2a01f',
-    secondary: '#ffd28a',
-    iconTop: '#384050',
-    iconBottom: '#171613',
+    deep: '#430008',
   },
 };
 
@@ -360,6 +353,46 @@ function drawRoundRect(context, x, y, width, height, radius) {
   context.closePath();
 }
 
+function fillRoundRect(context, x, y, width, height, radius, color) {
+  drawRoundRect(context, x, y, width, height, radius);
+  context.fillStyle = color;
+  context.fill();
+}
+
+function strokeRoundRect(context, x, y, width, height, radius, color, lineWidth = 2) {
+  drawRoundRect(context, x, y, width, height, radius);
+  context.strokeStyle = color;
+  context.lineWidth = lineWidth;
+  context.stroke();
+}
+
+function loadCanvasImage(src) {
+  if (!src) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+function drawContainedImage(context, image, x, y, width, height) {
+  if (!image) {
+    return false;
+  }
+
+  const ratio = Math.min(width / image.width, height / image.height);
+  const drawWidth = image.width * ratio;
+  const drawHeight = image.height * ratio;
+  const drawX = x + (width - drawWidth) / 2;
+  const drawY = y + (height - drawHeight) / 2;
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  return true;
+}
+
 function drawFittedText(context, text, x, y, maxWidth, fontSize, weight, color) {
   let size = fontSize;
   const family = 'Inter, Arial, sans-serif';
@@ -372,6 +405,15 @@ function drawFittedText(context, text, x, y, maxWidth, fontSize, weight, color) 
     size -= 1;
   } while (size > 14);
   context.fillText(text, x, y);
+}
+
+function drawCredentialField(context, label, value, x, y, width, color) {
+  fillRoundRect(context, x, y, width, 118, 24, '#fff7f7');
+  strokeRoundRect(context, x, y, width, 118, 24, '#ffd2d2', 2);
+  context.font = '800 20px Inter, Arial, sans-serif';
+  context.fillStyle = '#8f2433';
+  context.fillText(label.toUpperCase(), x + 28, y + 38);
+  drawFittedText(context, value, x + 28, y + 88, width - 56, 31, '900', color);
 }
 
 function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
@@ -404,75 +446,93 @@ function sanitizeDownloadName(value) {
     .toLowerCase();
 }
 
-function downloadSubscriptionAccessImage(customer, subscription) {
+async function downloadSubscriptionAccessImage(customer, subscription) {
   const theme = getServiceImageTheme(subscription.service__c);
   const email = subscription.account_email || subscription.cuenta_correo_electronico__c || 'Sin cuenta asignada';
   const password = subscription.account_password || 'Sin contrasena registrada';
   const profile = customer?.name || 'Cliente';
+  const service = subscription.service__c || theme.label;
+  const expirationDate = formatDate(subscription.expiration_date__c);
+  const logo = await loadCanvasImage(theme.logo);
   const canvas = document.createElement('canvas');
-  canvas.width = 900;
-  canvas.height = 620;
+  canvas.width = 1080;
+  canvas.height = 1350;
   const context = canvas.getContext('2d');
 
-  context.fillStyle = '#151515';
+  const background = context.createLinearGradient(0, 0, 0, canvas.height);
+  background.addColorStop(0, '#430008');
+  background.addColorStop(0.58, '#b9001f');
+  background.addColorStop(1, '#fff4f4');
+  context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const iconGradient = context.createLinearGradient(110, 22, 110, 210);
-  iconGradient.addColorStop(0, theme.iconTop);
-  iconGradient.addColorStop(1, theme.iconBottom);
-  drawRoundRect(context, 108, 22, 190, 190, 42);
-  context.fillStyle = iconGradient;
-  context.fill();
-  context.lineWidth = 4;
-  context.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-  context.stroke();
-
-  context.fillStyle = 'rgba(255, 255, 255, 0.10)';
+  context.globalAlpha = 0.12;
+  context.fillStyle = '#ffffff';
   context.beginPath();
-  context.ellipse(203, 142, 86, 38, -0.12, 0, Math.PI * 2);
+  context.arc(940, 90, 260, 0, Math.PI * 2);
   context.fill();
-
-  drawFittedText(context, theme.label, 135, 122, 135, 30, '800', '#ffffff');
-  context.strokeStyle = theme.secondary;
-  context.lineWidth = 3;
   context.beginPath();
-  context.arc(205, 118, 62, Math.PI * 1.1, Math.PI * 1.9);
-  context.stroke();
-
-  const labelX = 52;
-  const valueX = 182;
-  context.font = '700 22px Inter, Arial, sans-serif';
-  context.fillStyle = '#ffffff';
-  context.fillText('Correo:', labelX, 314);
-  drawFittedText(context, email, valueX, 314, 650, 22, '800', theme.accent);
-
-  context.font = '700 22px Inter, Arial, sans-serif';
-  context.fillStyle = '#ffffff';
-  context.fillText('Contrasena:', labelX, 368);
-  drawFittedText(context, password, valueX, 368, 620, 22, '800', '#f2a01f');
-
-  context.font = '700 22px Inter, Arial, sans-serif';
-  context.fillStyle = '#ffffff';
-  context.fillText('Perfil:', labelX, 422);
-  drawFittedText(context, profile, 128, 422, 685, 22, '800', '#3fa16c');
-
-  context.fillStyle = '#f4f4f4';
-  context.fillRect(52, 458, 3, 90);
-
-  drawRoundRect(context, 82, 460, 774, 96, 3);
-  context.fillStyle = '#1f1f1f';
+  context.arc(90, 1220, 280, 0, Math.PI * 2);
   context.fill();
+  context.globalAlpha = 1;
 
-  context.font = '600 16px Consolas, monospace';
-  context.fillStyle = '#ff5e4d';
+  context.font = '900 30px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffffff';
+  context.fillText('FUCK ITS CINEMA', 64, 78);
+  context.font = '700 20px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffdada';
+  context.fillText('Credenciales oficiales de acceso', 64, 112);
+
+  fillRoundRect(context, 64, 162, 952, 242, 34, '#ffffff');
+  strokeRoundRect(context, 64, 162, 952, 242, 34, 'rgba(255, 255, 255, 0.78)', 2);
+
+  fillRoundRect(context, 778, 200, 188, 166, 30, '#fff4f4');
+  strokeRoundRect(context, 778, 200, 188, 166, 30, '#ffc2c2', 2);
+  if (!drawContainedImage(context, logo, 802, 222, 140, 122)) {
+    drawFittedText(context, theme.label, 806, 292, 134, 30, '900', theme.accent);
+  }
+
+  context.font = '800 22px Inter, Arial, sans-serif';
+  context.fillStyle = '#8f2433';
+  context.fillText('SERVICIO', 112, 228);
+  drawFittedText(context, service, 112, 286, 610, 58, '900', '#430008');
+
+  fillRoundRect(context, 112, 318, 260, 44, 22, '#fff0f0');
+  context.font = '800 18px Inter, Arial, sans-serif';
+  context.fillStyle = '#c90022';
+  context.fillText(`Vence ${expirationDate}`, 136, 347);
+
+  fillRoundRect(context, 64, 446, 952, 664, 34, '#ffffff');
+  strokeRoundRect(context, 64, 446, 952, 664, 34, '#ffc2c2', 2);
+
+  context.font = '900 34px Inter, Arial, sans-serif';
+  context.fillStyle = '#430008';
+  context.fillText('Datos de acceso', 112, 514);
+
+  drawCredentialField(context, 'Correo', email, 112, 552, 856, '#c90022');
+  drawCredentialField(context, 'Contrasena', password, 112, 692, 856, '#430008');
+  drawCredentialField(context, 'Perfil', profile, 112, 832, 416, '#c90022');
+  drawCredentialField(context, 'Plataforma', theme.label, 552, 832, 416, theme.accent);
+
+  fillRoundRect(context, 112, 992, 856, 82, 24, '#fff0f0');
+  context.font = '800 19px Inter, Arial, sans-serif';
+  context.fillStyle = '#7a0012';
   drawWrappedText(
     context,
-    'Como parte de nuestras medidas de seguridad, se realizara una renovacion mensual de contrasenas para proteger la informacion de la cuenta.',
-    90,
-    482,
-    748,
-    30,
+    'Por seguridad, la contrasena puede renovarse cada mes. Mantenga estos datos privados y no los comparta fuera de su perfil asignado.',
+    140,
+    1024,
+    800,
+    27,
   );
+
+  fillRoundRect(context, 64, 1154, 952, 116, 32, '#430008');
+  context.font = '900 28px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffffff';
+  context.fillText('Gracias por preferir Fuck Its Cinema', 112, 1214);
+  context.font = '700 18px Inter, Arial, sans-serif';
+  context.fillStyle = '#ffdada';
+  context.fillText('Soporte y renovaciones disponibles con tu vendedor.', 112, 1248);
 
   const link = document.createElement('a');
   link.href = canvas.toDataURL('image/png');
