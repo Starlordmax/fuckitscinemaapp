@@ -6,6 +6,7 @@ import {
   ClipboardList,
   DollarSign,
   Download,
+  ExternalLink,
   Film,
   LockKeyhole,
   LogOut,
@@ -23,12 +24,14 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  cancelSubscription,
   checkConnection,
   createAccount,
   createCustomer,
   createSubscription,
   getCashLedger,
   getExpiredSubscriptions,
+  getSubscriptionCredentialAccount,
   getServiceAccounts,
   getSession,
   listAccounts,
@@ -151,7 +154,7 @@ const SERVICE_IMAGE_THEMES = {
 
 const SELLERS = ['Marbelly', 'Wendy', 'Kennet'];
 const PAYMENT_METHODS = ['Efectivo', 'Transferencia'];
-const STATUSES = ['Pagado', 'No pagado', 'Expirado'];
+const STATUSES = ['Pagado', 'No pagado', 'Expirado', 'Cancelado'];
 const APP_LOGO_SRC = '/app-logo.png';
 
 const emptySubscription = {
@@ -361,6 +364,38 @@ function getServicePrice(service) {
   return SERVICE_PRICES[service] ?? 0;
 }
 
+function normalizeComparable(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function servicesMatch(left, right) {
+  return normalizeComparable(left) === normalizeComparable(right);
+}
+
+function emailsMatch(left, right) {
+  return normalizeComparable(left) === normalizeComparable(right);
+}
+
+function isSubscriptionCanceled(status) {
+  return normalizeComparable(status) === 'cancelado';
+}
+
+function getStatusChipClass(status) {
+  if (status === 'Pagado') {
+    return 'chip chip--ok';
+  }
+
+  if (isSubscriptionCanceled(status)) {
+    return 'chip chip--danger';
+  }
+
+  return 'chip';
+}
+
+function getAccountClientNames(account) {
+  return account.client_names?.length ? account.client_names.join(', ') : '—';
+}
+
 function getServiceImageTheme(service) {
   const normalized = String(service || '').toLowerCase();
   if (normalized.includes('disney')) return SERVICE_IMAGE_THEMES.disney;
@@ -483,8 +518,20 @@ function getCredentialProfileName(value) {
 
 async function downloadSubscriptionAccessImage(customer, subscription) {
   const theme = getServiceImageTheme(subscription.service__c);
-  const email = subscription.account_email || subscription.cuenta_correo_electronico__c || 'Sin cuenta asignada';
-  const password = subscription.account_password || 'Sin contraseña registrada';
+  let credentialAccount = null;
+
+  try {
+    credentialAccount = await getSubscriptionCredentialAccount(subscription);
+  } catch {
+    credentialAccount = null;
+  }
+
+  const email =
+    credentialAccount?.correo_electronico__c ||
+    subscription.account_email ||
+    subscription.cuenta_correo_electronico__c ||
+    'Sin cuenta asignada';
+  const password = credentialAccount?.contrasena__c || subscription.account_password || 'Sin contraseña registrada';
   const profile = getCredentialProfileName(customer?.name);
   const service = subscription.service__c || theme.label;
   const expirationDate = formatDate(subscription.expiration_date__c);
@@ -964,11 +1011,14 @@ function CustomerSubscriptionsPanel({
   loading,
   error,
   onCreateSubscription,
+  onOpenAccount,
   onSubscriptionsChanged,
   onRenewSubscription,
+  onCancelSubscription,
 }) {
   const [editingSubscription, setEditingSubscription] = useState(null);
   const [renewingId, setRenewingId] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -977,7 +1027,7 @@ function CustomerSubscriptionsPanel({
   }, [customer?.id]);
 
   async function handleRenew(row) {
-    if (!onRenewSubscription || renewingId) {
+    if (!onRenewSubscription || renewingId || isSubscriptionCanceled(row.status__c)) {
       return;
     }
 
@@ -991,6 +1041,32 @@ function CustomerSubscriptionsPanel({
       setMessage(getErrorText(renewError));
     } finally {
       setRenewingId(null);
+    }
+  }
+
+  async function handleCancelSubscription(row) {
+    if (!onCancelSubscription || cancelingId || isSubscriptionCanceled(row.status__c)) {
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Cancelar la suscripción de ${customer.name} a ${row.service__c}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setCancelingId(row.id);
+    setMessage('');
+    try {
+      await onCancelSubscription(row);
+      await onSubscriptionsChanged();
+      setMessage(`${row.service__c} cancelado para ${customer.name}.`);
+      if (editingSubscription?.id === row.id) {
+        setEditingSubscription(null);
+      }
+    } catch (cancelError) {
+      setMessage(getErrorText(cancelError));
+    } finally {
+      setCancelingId(null);
     }
   }
 
@@ -1038,6 +1114,7 @@ function CustomerSubscriptionsPanel({
                 <th>Termina</th>
                 <th>Status</th>
                 <th>Renovar</th>
+                <th>Cancelar</th>
                 <th>Editar</th>
                 <th>Imagen</th>
               </tr>
@@ -1047,23 +1124,46 @@ function CustomerSubscriptionsPanel({
                 <tr key={row.id} className={editingSubscription?.id === row.id ? 'selected-row' : ''}>
                   <td data-label="Servicio">{row.service__c}</td>
                   <td data-label="Precio">{formatCurrency(row.precio__c)}</td>
-                  <td data-label="Cuenta">{row.account_email || row.cuenta_correo_electronico__c || 'Sin cuenta'}</td>
+                  <td data-label="Cuenta">
+                    {row.account_email || row.cuenta_correo_electronico__c ? (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => onOpenAccount?.(row)}
+                        title="Ver detalle de la cuenta"
+                      >
+                        <span>{row.account_email || row.cuenta_correo_electronico__c}</span>
+                        <ExternalLink size={14} />
+                      </button>
+                    ) : (
+                      'Sin cuenta'
+                    )}
+                  </td>
                   <td data-label="Ultimo pago">{formatDate(row.last_payment_date)}</td>
                   <td data-label="Termina">{formatDate(row.expiration_date__c)}</td>
                   <td data-label="Status">
-                    <span className={`chip ${row.status__c === 'Pagado' ? 'chip--ok' : ''}`}>
-                      {row.status__c}
-                    </span>
+                    <span className={getStatusChipClass(row.status__c)}>{row.status__c}</span>
                   </td>
                   <td data-label="Renovar">
                     <button
                       type="button"
                       className="table-action"
                       onClick={() => handleRenew(row)}
-                      disabled={!onRenewSubscription || renewingId === row.id}
+                      disabled={!onRenewSubscription || renewingId === row.id || isSubscriptionCanceled(row.status__c)}
                     >
                       <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
                       {renewingId === row.id ? 'Renovando' : 'Renovar'}
+                    </button>
+                  </td>
+                  <td data-label="Cancelar">
+                    <button
+                      type="button"
+                      className="table-action table-action--danger"
+                      onClick={() => handleCancelSubscription(row)}
+                      disabled={!onCancelSubscription || cancelingId === row.id || isSubscriptionCanceled(row.status__c)}
+                    >
+                      <X size={15} />
+                      {cancelingId === row.id ? 'Cancelando' : 'Cancelar'}
                     </button>
                   </td>
                   <td data-label="Editar">
@@ -1214,7 +1314,15 @@ function NewSubscription({ customers, onSaved, draft }) {
   );
 }
 
-function Customers({ rows, error, onSaved, onCreateSubscription, onRenewSubscription }) {
+function Customers({
+  rows,
+  error,
+  onSaved,
+  onCreateSubscription,
+  onOpenAccount,
+  onRenewSubscription,
+  onCancelSubscription,
+}) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
@@ -1400,8 +1508,13 @@ function Customers({ rows, error, onSaved, onCreateSubscription, onRenewSubscrip
                   closeSubscriptions();
                   onCreateSubscription(customer);
                 }}
+                onOpenAccount={(subscription) => {
+                  closeSubscriptions();
+                  onOpenAccount(subscription);
+                }}
                 onSubscriptionsChanged={reloadSelectedSubscriptions}
                 onRenewSubscription={onRenewSubscription}
+                onCancelSubscription={onCancelSubscription}
               />
             </div>
           </section>
@@ -1421,7 +1534,7 @@ function createEmptyAccountForm(service = 'Netflix') {
   };
 }
 
-function Accounts({ rows, error, onSaved, session }) {
+function Accounts({ rows, error, onSaved, session, focusAccount }) {
   const [form, setForm] = useState(createEmptyAccountForm());
   const [editingAccount, setEditingAccount] = useState(null);
   const [message, setMessage] = useState('');
@@ -1459,6 +1572,31 @@ function Accounts({ rows, error, onSaved, session }) {
     });
     setMessage('');
   }
+
+  useEffect(() => {
+    if (!focusAccount?.requestId) {
+      return;
+    }
+
+    const account = rows.find((row) => {
+      if (focusAccount.id && row.id === focusAccount.id) {
+        return true;
+      }
+
+      return (
+        focusAccount.email &&
+        emailsMatch(row.correo_electronico__c, focusAccount.email) &&
+        (!focusAccount.service || servicesMatch(row.tipo_de_servicio__c, focusAccount.service))
+      );
+    });
+
+    if (account) {
+      editAccount(account);
+      setMessage(`Cuenta seleccionada: ${account.correo_electronico__c}`);
+    } else {
+      setMessage('No encontre esa cuenta en el listado actual.');
+    }
+  }, [focusAccount?.requestId, rows]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -1499,6 +1637,7 @@ function Accounts({ rows, error, onSaved, session }) {
                 <th>Contraseña</th>
                 <th>Servicio</th>
                 <th>Clientes</th>
+                <th>Clientes en cuenta</th>
                 <th>Capacidad</th>
                 <th>Activa</th>
                 <th>Acciones</th>
@@ -1511,6 +1650,7 @@ function Accounts({ rows, error, onSaved, session }) {
                   <td data-label="Contraseña">{row.contrasena__c || '-'}</td>
                   <td data-label="Servicio">{row.tipo_de_servicio__c}</td>
                   <td data-label="Clientes">{row.clientes_contador__c}</td>
+                  <td data-label="Clientes en cuenta">{getAccountClientNames(row)}</td>
                   <td data-label="Capacidad">{row.capacidad_clientes__c ?? '—'}</td>
                   <td data-label="Activa">{row.activo__c ? 'Si' : 'No'}</td>
                   <td data-label="Acciones">
@@ -1576,6 +1716,7 @@ export default function App() {
   const [errors, setErrors] = useState({});
   const [query, setQuery] = useState('');
   const [subscriptionDraft, setSubscriptionDraft] = useState(null);
+  const [accountFocus, setAccountFocus] = useState(null);
 
   function startSubscriptionForCustomer(customer) {
     setSubscriptionDraft({
@@ -1583,6 +1724,16 @@ export default function App() {
       customerName: customer.name,
     });
     setActiveTab('new');
+  }
+
+  function openAccountFromSubscription(subscription) {
+    setAccountFocus({
+      requestId: Date.now(),
+      id: subscription.account_id || subscription.cuenta_vinculada__c,
+      email: subscription.account_email || subscription.cuenta_correo_electronico__c,
+      service: subscription.account_service || subscription.service__c,
+    });
+    setActiveTab('accounts');
   }
 
   async function renewSubscriptionRow(row) {
@@ -1595,6 +1746,11 @@ export default function App() {
     await renewSubscription(row.id, { startDate, price });
     await refreshData();
     return startDate;
+  }
+
+  async function cancelSubscriptionRow(row) {
+    await cancelSubscription(row.id);
+    await refreshData();
   }
 
   async function refreshData() {
@@ -1748,14 +1904,24 @@ export default function App() {
         {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
         {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} onRenew={renewSubscriptionRow} />}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
-        {activeTab === 'accounts' && <Accounts rows={accounts} error={errors.accounts} onSaved={refreshData} session={session} />}
+        {activeTab === 'accounts' && (
+          <Accounts
+            rows={accounts}
+            error={errors.accounts}
+            onSaved={refreshData}
+            session={session}
+            focusAccount={accountFocus}
+          />
+        )}
         {activeTab === 'customers' && (
           <Customers
             rows={filteredCustomers}
             error={errors.customers}
             onSaved={refreshData}
             onCreateSubscription={startSubscriptionForCustomer}
+            onOpenAccount={openAccountFromSubscription}
             onRenewSubscription={renewSubscriptionRow}
+            onCancelSubscription={cancelSubscriptionRow}
           />
         )}
       </section>

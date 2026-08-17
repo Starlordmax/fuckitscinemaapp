@@ -14,6 +14,89 @@ function unwrap({ data, error }) {
   return data ?? [];
 }
 
+function normalizeValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ''),
+  );
+}
+
+function isSameEmail(left, right) {
+  return normalizeValue(left) === normalizeValue(right);
+}
+
+function isSameService(left, right) {
+  return normalizeValue(left) === normalizeValue(right);
+}
+
+function isCanceledStatus(status) {
+  return normalizeValue(status) === 'cancelado';
+}
+
+function resolveAccountForSubscription(subscription, accounts) {
+  const linkedValue = subscription.account_id || subscription.cuenta_vinculada__c;
+  const linkedEmail = subscription.cuenta_correo_electronico__c || (String(linkedValue || '').includes('@') ? linkedValue : '');
+  const linkedAccount = accounts.find((account) => account.id === linkedValue);
+  const emailMatches = linkedEmail
+    ? accounts.filter((account) => isSameEmail(account.correo_electronico__c, linkedEmail))
+    : [];
+  const emailAndServiceMatch = emailMatches.find((account) =>
+    isSameService(account.tipo_de_servicio__c, subscription.service__c),
+  );
+
+  if (linkedAccount) {
+    const serviceMatches = isSameService(linkedAccount.tipo_de_servicio__c, subscription.service__c);
+    const emailMatchesLinked = !linkedEmail || isSameEmail(linkedAccount.correo_electronico__c, linkedEmail);
+
+    if (serviceMatches && emailMatchesLinked) {
+      return linkedAccount;
+    }
+  }
+
+  return emailAndServiceMatch || linkedAccount || (emailMatches.length === 1 ? emailMatches[0] : null);
+}
+
+async function fetchAccountsForSubscriptions(client, subscriptions) {
+  const accountIds = Array.from(
+    new Set(
+      subscriptions
+        .flatMap((subscription) => [subscription.account_id, subscription.cuenta_vinculada__c])
+        .filter(isUuid),
+    ),
+  );
+  const accountEmails = Array.from(
+    new Set(
+      subscriptions
+        .flatMap((subscription) => [
+          subscription.cuenta_correo_electronico__c,
+          String(subscription.cuenta_vinculada__c || '').includes('@') ? subscription.cuenta_vinculada__c : '',
+        ])
+        .filter(Boolean),
+    ),
+  );
+
+  const [accountsByIdResult, accountsByEmailResult] = await Promise.all([
+    accountIds.length
+      ? client
+          .from('correo_electronico__c')
+          .select('id, correo_electronico__c, contrasena__c, tipo_de_servicio__c')
+          .in('id', accountIds)
+      : Promise.resolve({ data: [], error: null }),
+    accountEmails.length
+      ? client
+          .from('correo_electronico__c')
+          .select('id, correo_electronico__c, contrasena__c, tipo_de_servicio__c')
+          .in('correo_electronico__c', accountEmails)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const accounts = [...unwrap(accountsByIdResult), ...unwrap(accountsByEmailResult)];
+  return Array.from(new Map(accounts.map((account) => [account.id, account])).values());
+}
+
 export async function getSession() {
   const client = ensureClient();
   const { data, error } = await client.auth.getSession();
@@ -141,6 +224,18 @@ export async function renewSubscription(id, payload) {
   );
 }
 
+export async function cancelSubscription(id) {
+  const client = ensureClient();
+  return unwrap(
+    await client
+      .from('subscription__c')
+      .update({ status__c: 'Cancelado' })
+      .eq('id', id)
+      .select('id, status__c')
+      .single(),
+  );
+}
+
 export async function listCustomers() {
   const client = ensureClient();
   return unwrap(
@@ -163,28 +258,18 @@ export async function listCustomerSubscriptions(customerId) {
     .order('expiration_date__c', { ascending: false })
     .limit(100);
   const subscriptions = unwrap(subscriptionsResult);
-
-  const accountIds = Array.from(
-    new Set(subscriptions.map((subscription) => subscription.cuenta_vinculada__c).filter(Boolean)),
-  );
   const [paymentsResult, accountsResult] = await Promise.all([
     client
       .from('dinero_de_cuentas__c')
       .select('subscription_pagada__c, fecha_de_pago__c')
       .eq('cliente__c', customerId)
       .order('fecha_de_pago__c', { ascending: false }),
-    accountIds.length
-      ? client
-          .from('correo_electronico__c')
-          .select('id, correo_electronico__c, contrasena__c')
-          .in('id', accountIds)
-      : Promise.resolve({ data: [], error: null }),
+    fetchAccountsForSubscriptions(client, subscriptions).then((accounts) => ({ data: accounts, error: null })),
   ]);
 
   const payments = unwrap(paymentsResult);
   const accounts = unwrap(accountsResult);
   const lastPaymentBySubscription = new Map();
-  const accountById = new Map(accounts.map((account) => [account.id, account]));
 
   payments.forEach((payment) => {
     if (!lastPaymentBySubscription.has(payment.subscription_pagada__c)) {
@@ -193,11 +278,13 @@ export async function listCustomerSubscriptions(customerId) {
   });
 
   return subscriptions.map((subscription) => {
-    const account = accountById.get(subscription.cuenta_vinculada__c);
+    const account = resolveAccountForSubscription(subscription, accounts);
     return {
       ...subscription,
+      account_id: account?.id || subscription.cuenta_vinculada__c,
       account_email: account?.correo_electronico__c || subscription.cuenta_correo_electronico__c,
       account_password: account?.contrasena__c || '',
+      account_service: account?.tipo_de_servicio__c || '',
       last_payment_date: lastPaymentBySubscription.get(subscription.id) || subscription.start_date__c,
     };
   });
@@ -205,7 +292,7 @@ export async function listCustomerSubscriptions(customerId) {
 
 export async function listAccounts() {
   const client = ensureClient();
-  return unwrap(
+  const accounts = unwrap(
     await client
       .from('correo_electronico__c')
       .select(
@@ -214,6 +301,48 @@ export async function listAccounts() {
       .order('tipo_de_servicio__c', { ascending: true })
       .order('clientes_contador__c', { ascending: true }),
   );
+
+  if (!accounts.length) {
+    return accounts;
+  }
+
+  const [subscriptionsResult, customersResult] = await Promise.all([
+    client
+      .from('subscription__c')
+      .select('id, cliente__c, cuenta_vinculada__c, cuenta_correo_electronico__c, service__c, status__c')
+      .limit(1000),
+    client.from('clientes__c').select('id, name').limit(1000),
+  ]);
+  const subscriptions = unwrap(subscriptionsResult);
+  const customers = unwrap(customersResult);
+  const customerById = new Map(customers.map((customer) => [customer.id, customer.name]));
+  const clientsByAccountId = new Map(accounts.map((account) => [account.id, new Set()]));
+
+  subscriptions.forEach((subscription) => {
+    if (isCanceledStatus(subscription.status__c)) {
+      return;
+    }
+
+    const account = resolveAccountForSubscription(subscription, accounts);
+    const customerName = customerById.get(subscription.cliente__c);
+
+    if (account?.id && customerName) {
+      clientsByAccountId.get(account.id)?.add(customerName);
+    }
+  });
+
+  return accounts.map((account) => ({
+    ...account,
+    client_names: Array.from(clientsByAccountId.get(account.id) || []).sort((left, right) =>
+      left.localeCompare(right, 'es'),
+    ),
+  }));
+}
+
+export async function getSubscriptionCredentialAccount(subscription) {
+  const client = ensureClient();
+  const accounts = await fetchAccountsForSubscriptions(client, [subscription]);
+  return resolveAccountForSubscription(subscription, accounts);
 }
 
 export async function createAccount(payload) {
