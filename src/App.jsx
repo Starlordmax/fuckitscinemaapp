@@ -742,8 +742,9 @@ function Dashboard({ expired, cash }) {
   );
 }
 
-function ExpiredTable({ rows, error, onRenew }) {
+function ExpiredTable({ rows, error, onRenew, onCancel }) {
   const [renewingId, setRenewingId] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
   const [message, setMessage] = useState('');
 
   async function handleRenew(row) {
@@ -760,6 +761,28 @@ function ExpiredTable({ rows, error, onRenew }) {
       setMessage(getErrorText(renewError));
     } finally {
       setRenewingId(null);
+    }
+  }
+
+  async function handleCancel(row) {
+    if (!onCancel || cancelingId) {
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Cancelar la suscripción vencida de ${row.clienteName} a ${row.service}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setCancelingId(row.id);
+    setMessage('');
+    try {
+      await onCancel(row);
+      setMessage(`${row.clienteName} cancelado en ${row.service}.`);
+    } catch (cancelError) {
+      setMessage(getErrorText(cancelError));
+    } finally {
+      setCancelingId(null);
     }
   }
 
@@ -781,7 +804,7 @@ function ExpiredTable({ rows, error, onRenew }) {
                 <th>Vence</th>
                 <th>Servicio</th>
                 <th>Precio</th>
-                <th>Renovar</th>
+                <th>Acciones</th>
                 <th>Cliente de</th>
               </tr>
             </thead>
@@ -798,7 +821,7 @@ function ExpiredTable({ rows, error, onRenew }) {
                   <td className="expired-table__date" data-label="Vence">{formatDate(row.expirationDate)}</td>
                   <td className="expired-table__service" data-label="Servicio">{row.service}</td>
                   <td className="expired-table__price" data-label="Precio">{formatCurrency(row.price)}</td>
-                  <td className="expired-table__action" data-label="Renovar">
+                  <td className="expired-table__actions" data-label="Acciones">
                     <button
                       type="button"
                       className="table-action"
@@ -807,6 +830,15 @@ function ExpiredTable({ rows, error, onRenew }) {
                     >
                       <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
                       {renewingId === row.id ? 'Renovando' : 'Renovar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="table-action table-action--danger"
+                      onClick={() => handleCancel(row)}
+                      disabled={!onCancel || cancelingId === row.id}
+                    >
+                      <X size={15} />
+                      {cancelingId === row.id ? 'Cancelando' : 'Cancelar'}
                     </button>
                   </td>
                   <td data-label="Cliente de">{row.clienteDe || '—'}</td>
@@ -1027,7 +1059,7 @@ function CustomerSubscriptionsPanel({
   }, [customer?.id]);
 
   async function handleRenew(row) {
-    if (!onRenewSubscription || renewingId || isSubscriptionCanceled(row.status__c)) {
+    if (!onRenewSubscription || renewingId) {
       return;
     }
 
@@ -1149,7 +1181,7 @@ function CustomerSubscriptionsPanel({
                       type="button"
                       className="table-action"
                       onClick={() => handleRenew(row)}
-                      disabled={!onRenewSubscription || renewingId === row.id || isSubscriptionCanceled(row.status__c)}
+                      disabled={!onRenewSubscription || renewingId === row.id}
                     >
                       <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
                       {renewingId === row.id ? 'Renovando' : 'Renovar'}
@@ -1896,13 +1928,20 @@ export default function App() {
           <>
             <Dashboard expired={expired} cash={cash} />
             <div className="dual-panels">
-              <ExpiredTable rows={expired.slice(0, 6)} error={errors.expired} onRenew={renewSubscriptionRow} />
+              <ExpiredTable
+                rows={expired.slice(0, 6)}
+                error={errors.expired}
+                onRenew={renewSubscriptionRow}
+                onCancel={cancelSubscriptionRow}
+              />
               <CashTable rows={cash.slice(0, 6)} error={errors.cash} />
             </div>
           </>
         )}
         {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
-        {activeTab === 'expired' && <ExpiredTable rows={expired} error={errors.expired} onRenew={renewSubscriptionRow} />}
+        {activeTab === 'expired' && (
+          <ExpiredTable rows={expired} error={errors.expired} onRenew={renewSubscriptionRow} onCancel={cancelSubscriptionRow} />
+        )}
         {activeTab === 'cash' && <CashTable rows={cash} error={errors.cash} />}
         {activeTab === 'accounts' && (
           <Accounts
