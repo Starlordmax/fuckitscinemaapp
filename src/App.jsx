@@ -1145,10 +1145,7 @@ function CustomerSubscriptionsPanel({
                 <th>Ultimo pago</th>
                 <th>Termina</th>
                 <th>Status</th>
-                <th>Renovar</th>
-                <th>Cancelar</th>
-                <th>Editar</th>
-                <th>Imagen</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -1176,7 +1173,7 @@ function CustomerSubscriptionsPanel({
                   <td data-label="Status">
                     <span className={getStatusChipClass(row.status__c)}>{row.status__c}</span>
                   </td>
-                  <td data-label="Renovar">
+                  <td className="subscription-table__actions" data-label="Acciones">
                     <button
                       type="button"
                       className="table-action"
@@ -1186,8 +1183,6 @@ function CustomerSubscriptionsPanel({
                       <RefreshCw size={15} className={renewingId === row.id ? 'spin' : ''} />
                       {renewingId === row.id ? 'Renovando' : 'Renovar'}
                     </button>
-                  </td>
-                  <td data-label="Cancelar">
                     <button
                       type="button"
                       className="table-action table-action--danger"
@@ -1197,14 +1192,10 @@ function CustomerSubscriptionsPanel({
                       <X size={15} />
                       {cancelingId === row.id ? 'Cancelando' : 'Cancelar'}
                     </button>
-                  </td>
-                  <td data-label="Editar">
                     <button type="button" className="table-action" onClick={() => setEditingSubscription(row)}>
                       <Pencil size={15} />
                       Editar
                     </button>
-                  </td>
-                  <td data-label="Imagen">
                     <button
                       type="button"
                       className="table-action"

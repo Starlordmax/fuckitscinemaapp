@@ -416,6 +416,18 @@ table {
   white-space: nowrap;
 }
 
+.subscription-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.subscription-table__actions .table-action {
+  flex: 1 1 104px;
+  white-space: nowrap;
+}
+
 th,
 td {
   padding: 11px 10px;
@@ -1201,5 +1213,18 @@ td {
   .expired-table__actions .table-action {
     width: auto;
     min-width: 86px;
+  }
+
+  .subscription-table__actions {
+    align-items: stretch;
+    flex-direction: row;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .subscription-table__actions .table-action {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 118px;
+    width: auto;
   }
 }
