@@ -79,6 +79,13 @@ const SERVICE_PRICES = {
   'Hbomax (cuenta completa)': 300,
 };
 
+const USD_TO_CORDOBAS_RATE = 36.5;
+const SUBSCRIPTION_INCOME_CORDOBAS = 140;
+
+const PROVIDER_COSTS_USD = {
+  netflix: 9.99,
+};
+
 const SERVICE_IMAGE_THEMES = {
   disney: {
     label: 'Disney+',
@@ -174,6 +181,22 @@ function formatCurrency(value) {
     currency: 'NIO',
     maximumFractionDigits: 0,
   }).format(numeric);
+}
+
+function formatCordobasDetailed(value) {
+  const numeric = Number(value || 0);
+  return `C$${new Intl.NumberFormat('es-NI', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numeric)}`;
+}
+
+function formatUsd(value) {
+  const numeric = Number(value || 0);
+  return `US$${new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numeric)}`;
 }
 
 function formatDate(value) {
@@ -394,6 +417,30 @@ function getStatusChipClass(status) {
 
 function getAccountClientNames(account) {
   return account.client_names?.length ? account.client_names.join(', ') : '—';
+}
+
+function getProviderCostUsd(service) {
+  const normalized = normalizeComparable(service);
+  if (normalized.includes('netflix')) {
+    return PROVIDER_COSTS_USD.netflix;
+  }
+
+  return null;
+}
+
+function getProviderFinancials(account) {
+  const subscriptionCount = Number(account.active_subscription_count || 0);
+  const incomeCordobas = subscriptionCount * SUBSCRIPTION_INCOME_CORDOBAS;
+  const costUsd = getProviderCostUsd(account.tipo_de_servicio__c);
+  const costCordobas = costUsd == null ? null : costUsd * USD_TO_CORDOBAS_RATE;
+
+  return {
+    subscriptionCount,
+    incomeCordobas,
+    costUsd,
+    costCordobas,
+    netProfitCordobas: costCordobas == null ? null : incomeCordobas - costCordobas,
+  };
 }
 
 function getServiceImageTheme(service) {
@@ -1661,19 +1708,38 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
                 <th>Servicio</th>
                 <th>Clientes</th>
                 <th>Clientes en cuenta</th>
+                <th>Costo USD</th>
+                <th>Costo C$</th>
+                <th>Ingresos C$</th>
+                <th>Ganancia neta</th>
                 <th>Capacidad</th>
                 <th>Activa</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} className={editingAccount?.id === row.id ? 'selected-row' : ''}>
+              {rows.map((row) => {
+                const financials = getProviderFinancials(row);
+
+                return (
+                  <tr key={row.id} className={editingAccount?.id === row.id ? 'selected-row' : ''}>
                   <td data-label="Correo">{row.correo_electronico__c}</td>
                   <td data-label="Contraseña">{row.contrasena__c || '-'}</td>
                   <td data-label="Servicio">{row.tipo_de_servicio__c}</td>
-                  <td data-label="Clientes">{row.clientes_contador__c}</td>
+                  <td data-label="Clientes">{financials.subscriptionCount}</td>
                   <td data-label="Clientes en cuenta">{getAccountClientNames(row)}</td>
+                  <td data-label="Costo USD">
+                    {financials.costUsd == null ? 'Pendiente' : formatUsd(financials.costUsd)}
+                  </td>
+                  <td data-label="Costo C$">
+                    {financials.costCordobas == null ? 'Pendiente' : formatCordobasDetailed(financials.costCordobas)}
+                  </td>
+                  <td data-label="Ingresos C$">{formatCordobasDetailed(financials.incomeCordobas)}</td>
+                  <td data-label="Ganancia neta">
+                    {financials.netProfitCordobas == null
+                      ? 'Pendiente'
+                      : formatCordobasDetailed(financials.netProfitCordobas)}
+                  </td>
                   <td data-label="Capacidad">{row.capacidad_clientes__c ?? '—'}</td>
                   <td data-label="Activa">{row.activo__c ? 'Si' : 'No'}</td>
                   <td data-label="Acciones">
@@ -1682,8 +1748,9 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
                       Editar
                     </button>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

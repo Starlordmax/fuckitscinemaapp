@@ -317,6 +317,7 @@ export async function listAccounts() {
   const customers = unwrap(customersResult);
   const customerById = new Map(customers.map((customer) => [customer.id, customer.name]));
   const clientsByAccountId = new Map(accounts.map((account) => [account.id, new Set()]));
+  const subscriptionsByAccountId = new Map(accounts.map((account) => [account.id, 0]));
 
   subscriptions.forEach((subscription) => {
     if (isCanceledStatus(subscription.status__c)) {
@@ -325,6 +326,10 @@ export async function listAccounts() {
 
     const account = resolveAccountForSubscription(subscription, accounts);
     const customerName = customerById.get(subscription.cliente__c);
+
+    if (account?.id) {
+      subscriptionsByAccountId.set(account.id, (subscriptionsByAccountId.get(account.id) || 0) + 1);
+    }
 
     if (account?.id && customerName) {
       clientsByAccountId.get(account.id)?.add(customerName);
@@ -336,6 +341,7 @@ export async function listAccounts() {
     client_names: Array.from(clientsByAccountId.get(account.id) || []).sort((left, right) =>
       left.localeCompare(right, 'es'),
     ),
+    active_subscription_count: subscriptionsByAccountId.get(account.id) || 0,
   }));
 }
 
