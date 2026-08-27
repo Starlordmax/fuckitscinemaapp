@@ -296,7 +296,7 @@ export async function listAccounts() {
     await client
       .from('correo_electronico__c')
       .select(
-        'id, correo_electronico__c, contrasena__c, tipo_de_servicio__c, clientes_contador__c, capacidad_clientes__c, activo__c',
+        'id, correo_electronico__c, contrasena__c, tipo_de_servicio__c, clientes_contador__c, capacidad_clientes__c, activo__c, costo_usd__c, costo_cordobas__c',
       )
       .order('tipo_de_servicio__c', { ascending: true })
       .order('clientes_contador__c', { ascending: true }),

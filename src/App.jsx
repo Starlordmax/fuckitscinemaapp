@@ -419,8 +419,22 @@ function getAccountClientNames(account) {
   return account.client_names?.length ? account.client_names.join(', ') : '—';
 }
 
-function getProviderCostUsd(service) {
-  const normalized = normalizeComparable(service);
+function parseOptionalMoney(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function getProviderCostUsd(account) {
+  const savedCostUsd = parseOptionalMoney(account.costo_usd__c);
+  if (savedCostUsd != null) {
+    return savedCostUsd;
+  }
+
+  const normalized = normalizeComparable(account.tipo_de_servicio__c);
   if (normalized.includes('netflix')) {
     return PROVIDER_COSTS_USD.netflix;
   }
@@ -431,8 +445,9 @@ function getProviderCostUsd(service) {
 function getProviderFinancials(account) {
   const subscriptionCount = Number(account.active_subscription_count || 0);
   const incomeCordobas = subscriptionCount * SUBSCRIPTION_INCOME_CORDOBAS;
-  const costUsd = getProviderCostUsd(account.tipo_de_servicio__c);
-  const costCordobas = costUsd == null ? null : costUsd * USD_TO_CORDOBAS_RATE;
+  const costUsd = getProviderCostUsd(account);
+  const savedCostCordobas = parseOptionalMoney(account.costo_cordobas__c);
+  const costCordobas = savedCostCordobas ?? (costUsd == null ? null : costUsd * USD_TO_CORDOBAS_RATE);
 
   return {
     subscriptionCount,
