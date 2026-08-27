@@ -309,7 +309,7 @@ export async function listAccounts() {
   const [subscriptionsResult, customersResult] = await Promise.all([
     client
       .from('subscription__c')
-      .select('id, cliente__c, cuenta_vinculada__c, cuenta_correo_electronico__c, service__c, status__c')
+      .select('id, cliente__c, cuenta_vinculada__c, cuenta_correo_electronico__c, service__c, status__c, precio__c')
       .limit(1000),
     client.from('clientes__c').select('id, name').limit(1000),
   ]);
@@ -318,6 +318,7 @@ export async function listAccounts() {
   const customerById = new Map(customers.map((customer) => [customer.id, customer.name]));
   const clientsByAccountId = new Map(accounts.map((account) => [account.id, new Set()]));
   const subscriptionsByAccountId = new Map(accounts.map((account) => [account.id, 0]));
+  const incomeByAccountId = new Map(accounts.map((account) => [account.id, 0]));
 
   subscriptions.forEach((subscription) => {
     if (isCanceledStatus(subscription.status__c)) {
@@ -329,6 +330,7 @@ export async function listAccounts() {
 
     if (account?.id) {
       subscriptionsByAccountId.set(account.id, (subscriptionsByAccountId.get(account.id) || 0) + 1);
+      incomeByAccountId.set(account.id, (incomeByAccountId.get(account.id) || 0) + Number(subscription.precio__c || 0));
     }
 
     if (account?.id && customerName) {
@@ -342,6 +344,7 @@ export async function listAccounts() {
       left.localeCompare(right, 'es'),
     ),
     active_subscription_count: subscriptionsByAccountId.get(account.id) || 0,
+    active_subscription_income_cordobas: incomeByAccountId.get(account.id) || 0,
   }));
 }
 

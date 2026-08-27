@@ -80,7 +80,6 @@ const SERVICE_PRICES = {
 };
 
 const USD_TO_CORDOBAS_RATE = 36.5;
-const SUBSCRIPTION_INCOME_CORDOBAS = 140;
 
 const PROVIDER_COSTS_USD = {
   netflix: 9.99,
@@ -444,7 +443,7 @@ function getProviderCostUsd(account) {
 
 function getProviderFinancials(account) {
   const subscriptionCount = Number(account.active_subscription_count || 0);
-  const incomeCordobas = subscriptionCount * SUBSCRIPTION_INCOME_CORDOBAS;
+  const incomeCordobas = Number(account.active_subscription_income_cordobas || 0);
   const savedCostCordobas = parseOptionalMoney(account.costo_cordobas__c);
   const costUsd = savedCostCordobas == null ? getProviderCostUsd(account) : null;
   const costCordobas = savedCostCordobas ?? (costUsd == null ? null : costUsd * USD_TO_CORDOBAS_RATE);
