@@ -76,7 +76,7 @@ const SERVICE_PRICES = {
   'Paramount+': 100,
   Crunchyroll: 100,
   'Netflix(cuenta completa)': 450,
-  'Hbomax (cuenta completa)': 300,
+  'Hbomax (cuenta completa)': 350,
 };
 
 const USD_TO_CORDOBAS_RATE = 36.5;
@@ -84,6 +84,39 @@ const USD_TO_CORDOBAS_RATE = 36.5;
 const PROVIDER_COSTS_USD = {
   netflix: 9.99,
 };
+
+const MARKET_REFERENCES = [
+  {
+    service: 'Netflix',
+    marketPrice: 140,
+    note: 'Mi Perfil Nica muestra C$140 premium y MOVIESNIC C$200. Hay espacio para vender premium mas alto.',
+  },
+  {
+    service: 'Disney+',
+    marketPrice: 130,
+    note: 'Mi Perfil Nica muestra C$130-C$160 y MOVIESNIC C$200. Conviene separar Standard y Premium.',
+  },
+  {
+    service: 'Hbomax',
+    marketPrice: 130,
+    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$90. Buen margen si se mantiene ocupacion alta.',
+  },
+  {
+    service: 'Primevideo',
+    marketPrice: 130,
+    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$90. Margen depende de llenar mas espacios.',
+  },
+  {
+    service: 'Paramount+',
+    marketPrice: 100,
+    note: 'MOVIESNIC muestra C$100. Si el costo queda alto, necesita volumen o combo.',
+  },
+  {
+    service: 'Crunchyroll',
+    marketPrice: 130,
+    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$100. Debe venderse mas caro o en combo.',
+  },
+];
 
 const SERVICE_IMAGE_THEMES = {
   disney: {
@@ -457,6 +490,88 @@ function getProviderFinancials(account) {
   };
 }
 
+function getProfitStatus(financials) {
+  if (financials.costCordobas == null) {
+    return { key: 'unknown', label: 'Sin costo' };
+  }
+
+  if (financials.netProfitCordobas < 0) {
+    return { key: 'loss', label: 'Perdida' };
+  }
+
+  const margin = financials.incomeCordobas > 0 ? financials.netProfitCordobas / financials.incomeCordobas : 0;
+  if (financials.netProfitCordobas < 75 || margin < 0.18) {
+    return { key: 'low', label: 'Margen bajo' };
+  }
+
+  return { key: 'good', label: 'Rentable' };
+}
+
+function ProfitStatusBadge({ status }) {
+  return <span className={`profit-status profit-status--${status.key}`}>{status.label}</span>;
+}
+
+function buildProfitabilitySummary(accounts) {
+  const accountSummaries = accounts.map((account) => {
+    const financials = getProviderFinancials(account);
+    return {
+      id: account.id,
+      service: account.tipo_de_servicio__c || 'Sin servicio',
+      financials,
+      status: getProfitStatus(financials),
+    };
+  });
+
+  const totals = accountSummaries.reduce(
+    (summary, account) => ({
+      income: summary.income + account.financials.incomeCordobas,
+      cost: summary.cost + Number(account.financials.costCordobas || 0),
+      profit: summary.profit + Number(account.financials.netProfitCordobas || 0),
+      lossAccounts: summary.lossAccounts + (account.status.key === 'loss' ? 1 : 0),
+      lowMarginAccounts: summary.lowMarginAccounts + (account.status.key === 'low' ? 1 : 0),
+    }),
+    { income: 0, cost: 0, profit: 0, lossAccounts: 0, lowMarginAccounts: 0 },
+  );
+
+  const byService = new Map();
+  accountSummaries.forEach((account) => {
+    const current = byService.get(account.service) || {
+      service: account.service,
+      accounts: 0,
+      subscriptions: 0,
+      income: 0,
+      cost: 0,
+      profit: 0,
+      statusOrder: 'good',
+    };
+    current.accounts += 1;
+    current.subscriptions += account.financials.subscriptionCount;
+    current.income += account.financials.incomeCordobas;
+    current.cost += Number(account.financials.costCordobas || 0);
+    current.profit += Number(account.financials.netProfitCordobas || 0);
+    if (account.status.key === 'loss') current.statusOrder = 'loss';
+    if (account.status.key === 'low' && current.statusOrder !== 'loss') current.statusOrder = 'low';
+    if (account.status.key === 'unknown' && current.statusOrder === 'good') current.statusOrder = 'unknown';
+    byService.set(account.service, current);
+  });
+
+  const serviceRows = Array.from(byService.values())
+    .map((row) => ({
+      ...row,
+      status:
+        row.statusOrder === 'unknown'
+          ? { key: 'unknown', label: 'Sin costo' }
+          : getProfitStatus({
+              incomeCordobas: row.income,
+              costCordobas: row.cost,
+              netProfitCordobas: row.profit,
+            }),
+    }))
+    .sort((left, right) => left.profit - right.profit);
+
+  return { totals, serviceRows };
+}
+
 function getServiceImageTheme(service) {
   const normalized = String(service || '').toLowerCase();
   if (normalized.includes('disney')) return SERVICE_IMAGE_THEMES.disney;
@@ -784,7 +899,7 @@ function AuthPanel({ session, onSession }) {
   );
 }
 
-function Dashboard({ expired, cash }) {
+function Dashboard({ expired, cash, accounts }) {
   const totalCash = useMemo(
     () => cash.reduce((sum, row) => sum + Number(row.Total__c || row.total__c || 0), 0),
     [cash],
@@ -793,13 +908,87 @@ function Dashboard({ expired, cash }) {
     () => cash.filter((row) => (row.Collected__c || row.collected__c) !== 'Si').length,
     [cash],
   );
+  const profitability = useMemo(() => buildProfitabilitySummary(accounts), [accounts]);
 
   return (
-    <div className="content-grid">
-      <Metric label="Suscripciones vencidas" value={expired.length} icon={Ticket} />
-      <Metric label="Efectivo registrado" value={formatCurrency(totalCash)} icon={DollarSign} />
-      <Metric label="Pendiente de recolectar" value={uncollected} icon={WalletCards} />
-    </div>
+    <>
+      <div className="content-grid">
+        <Metric label="Suscripciones vencidas" value={expired.length} icon={Ticket} />
+        <Metric label="Efectivo registrado" value={formatCurrency(totalCash)} icon={DollarSign} />
+        <Metric label="Pendiente de recolectar" value={uncollected} icon={WalletCards} />
+      </div>
+      <section className="panel profitability-panel">
+        <div className="panel__header">
+          <h2>Rentabilidad</h2>
+          <DollarSign size={18} />
+        </div>
+        <div className="profit-summary">
+          <div>
+            <span>Ingresos activos</span>
+            <strong>{formatCordobasDetailed(profitability.totals.income)}</strong>
+          </div>
+          <div>
+            <span>Costos cargados</span>
+            <strong>{formatCordobasDetailed(profitability.totals.cost)}</strong>
+          </div>
+          <div>
+            <span>Ganancia neta</span>
+            <strong>{formatCordobasDetailed(profitability.totals.profit)}</strong>
+          </div>
+          <div className={profitability.totals.lossAccounts ? 'profit-alert profit-alert--loss' : 'profit-alert'}>
+            <span>Cuentas en perdida</span>
+            <strong>{profitability.totals.lossAccounts}</strong>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="profit-table">
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Cuentas</th>
+                <th>Clientes</th>
+                <th>Ingresos</th>
+                <th>Costos</th>
+                <th>Ganancia</th>
+                <th>Alerta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profitability.serviceRows.map((row) => (
+                <tr key={row.service}>
+                  <td data-label="Servicio">{row.service}</td>
+                  <td data-label="Cuentas">{row.accounts}</td>
+                  <td data-label="Clientes">{row.subscriptions}</td>
+                  <td data-label="Ingresos">{formatCordobasDetailed(row.income)}</td>
+                  <td data-label="Costos">{formatCordobasDetailed(row.cost)}</td>
+                  <td data-label="Ganancia">{formatCordobasDetailed(row.profit)}</td>
+                  <td data-label="Alerta">
+                    <ProfitStatusBadge status={row.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="panel market-panel">
+        <div className="panel__header">
+          <h2>Mercado Managua</h2>
+          <ClipboardList size={18} />
+        </div>
+        <div className="market-grid">
+          {MARKET_REFERENCES.map((item) => (
+            <article key={item.service} className="market-card">
+              <div>
+                <strong>{item.service}</strong>
+                <span>Referencia {formatCurrency(item.marketPrice)}</span>
+              </div>
+              <p>{item.note}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -2061,7 +2250,7 @@ export default function App() {
 
         {activeTab === 'dashboard' && (
           <>
-            <Dashboard expired={expired} cash={cash} />
+            <Dashboard expired={expired} cash={cash} accounts={accounts} />
             <div className="dual-panels">
               <ExpiredTable
                 rows={expired.slice(0, 6)}
