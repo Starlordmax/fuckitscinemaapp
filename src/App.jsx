@@ -85,39 +85,6 @@ const PROVIDER_COSTS_USD = {
   netflix: 9.99,
 };
 
-const MARKET_REFERENCES = [
-  {
-    service: 'Netflix',
-    marketPrice: 140,
-    note: 'Mi Perfil Nica muestra C$140 premium y MOVIESNIC C$200. Hay espacio para vender premium mas alto.',
-  },
-  {
-    service: 'Disney+',
-    marketPrice: 130,
-    note: 'Mi Perfil Nica muestra C$130-C$160 y MOVIESNIC C$200. Conviene separar Standard y Premium.',
-  },
-  {
-    service: 'Hbomax',
-    marketPrice: 130,
-    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$90. Buen margen si se mantiene ocupacion alta.',
-  },
-  {
-    service: 'Primevideo',
-    marketPrice: 130,
-    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$90. Margen depende de llenar mas espacios.',
-  },
-  {
-    service: 'Paramount+',
-    marketPrice: 100,
-    note: 'MOVIESNIC muestra C$100. Si el costo queda alto, necesita volumen o combo.',
-  },
-  {
-    service: 'Crunchyroll',
-    marketPrice: 130,
-    note: 'MOVIESNIC muestra C$130 y Mi Perfil Nica C$100. Debe venderse mas caro o en combo.',
-  },
-];
-
 const SERVICE_IMAGE_THEMES = {
   disney: {
     label: 'Disney+',
@@ -969,23 +936,6 @@ function Dashboard({ expired, cash, accounts }) {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-      <section className="panel market-panel">
-        <div className="panel__header">
-          <h2>Mercado Managua</h2>
-          <ClipboardList size={18} />
-        </div>
-        <div className="market-grid">
-          {MARKET_REFERENCES.map((item) => (
-            <article key={item.service} className="market-card">
-              <div>
-                <strong>{item.service}</strong>
-                <span>Referencia {formatCurrency(item.marketPrice)}</span>
-              </div>
-              <p>{item.note}</p>
-            </article>
-          ))}
         </div>
       </section>
     </>

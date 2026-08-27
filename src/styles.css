@@ -345,8 +345,7 @@ button {
   line-height: 1;
 }
 
-.profitability-panel,
-.market-panel {
+.profitability-panel {
   margin-bottom: 14px;
 }
 
@@ -367,9 +366,7 @@ button {
   background: var(--surface-soft);
 }
 
-.profit-summary span,
-.market-card span,
-.market-card p {
+.profit-summary span {
   color: var(--red-muted);
   font-size: 12px;
   font-weight: 800;
@@ -417,31 +414,6 @@ button {
 .profit-status--unknown {
   background: #f1f5f9;
   color: #475569;
-}
-
-.market-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.market-card {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-soft);
-}
-
-.market-card strong,
-.market-card span {
-  display: block;
-}
-
-.market-card p {
-  margin: 0;
-  line-height: 1.35;
 }
 
 .dual-panels,
@@ -1091,8 +1063,7 @@ td {
   .dual-panels,
   .split,
   .form-grid,
-  .profit-summary,
-  .market-grid {
+  .profit-summary {
     grid-template-columns: 1fr;
   }
 
