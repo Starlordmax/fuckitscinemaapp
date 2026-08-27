@@ -866,7 +866,7 @@ function AuthPanel({ session, onSession }) {
   );
 }
 
-function Dashboard({ expired, cash, accounts }) {
+function Dashboard({ expired, cash }) {
   const totalCash = useMemo(
     () => cash.reduce((sum, row) => sum + Number(row.Total__c || row.total__c || 0), 0),
     [cash],
@@ -875,15 +875,20 @@ function Dashboard({ expired, cash, accounts }) {
     () => cash.filter((row) => (row.Collected__c || row.collected__c) !== 'Si').length,
     [cash],
   );
+
+  return (
+    <div className="content-grid">
+      <Metric label="Suscripciones vencidas" value={expired.length} icon={Ticket} />
+      <Metric label="Efectivo registrado" value={formatCurrency(totalCash)} icon={DollarSign} />
+      <Metric label="Pendiente de recolectar" value={uncollected} icon={WalletCards} />
+    </div>
+  );
+}
+
+function ProfitabilityPanel({ accounts }) {
   const profitability = useMemo(() => buildProfitabilitySummary(accounts), [accounts]);
 
   return (
-    <>
-      <div className="content-grid">
-        <Metric label="Suscripciones vencidas" value={expired.length} icon={Ticket} />
-        <Metric label="Efectivo registrado" value={formatCurrency(totalCash)} icon={DollarSign} />
-        <Metric label="Pendiente de recolectar" value={uncollected} icon={WalletCards} />
-      </div>
       <section className="panel profitability-panel">
         <div className="panel__header">
           <h2>Rentabilidad</h2>
@@ -938,7 +943,6 @@ function Dashboard({ expired, cash, accounts }) {
           </table>
         </div>
       </section>
-    </>
   );
 }
 
@@ -2199,18 +2203,17 @@ export default function App() {
         )}
 
         {activeTab === 'dashboard' && (
-          <>
-            <Dashboard expired={expired} cash={cash} accounts={accounts} />
-            <div className="dual-panels">
-              <ExpiredTable
-                rows={expired.slice(0, 6)}
-                error={errors.expired}
-                onRenew={renewSubscriptionRow}
-                onCancel={cancelSubscriptionRow}
-              />
-              <CashTable rows={cash.slice(0, 6)} error={errors.cash} />
-            </div>
-          </>
+          <div className="dashboard-stack">
+            <ExpiredTable
+              rows={expired.slice(0, 6)}
+              error={errors.expired}
+              onRenew={renewSubscriptionRow}
+              onCancel={cancelSubscriptionRow}
+            />
+            <Dashboard expired={expired} cash={cash} />
+            <CashTable rows={cash.slice(0, 6)} error={errors.cash} />
+            <ProfitabilityPanel accounts={accounts} />
+          </div>
         )}
         {activeTab === 'new' && <NewSubscription customers={customers} onSaved={refreshData} draft={subscriptionDraft} />}
         {activeTab === 'expired' && (

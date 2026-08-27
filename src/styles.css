@@ -307,6 +307,15 @@ button {
   margin-bottom: 14px;
 }
 
+.dashboard-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-stack .content-grid {
+  margin-bottom: 0;
+}
+
 .metric,
 .panel {
   border: 1px solid var(--border);
