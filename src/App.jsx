@@ -445,8 +445,8 @@ function getProviderCostUsd(account) {
 function getProviderFinancials(account) {
   const subscriptionCount = Number(account.active_subscription_count || 0);
   const incomeCordobas = subscriptionCount * SUBSCRIPTION_INCOME_CORDOBAS;
-  const costUsd = getProviderCostUsd(account);
   const savedCostCordobas = parseOptionalMoney(account.costo_cordobas__c);
+  const costUsd = savedCostCordobas == null ? getProviderCostUsd(account) : null;
   const costCordobas = savedCostCordobas ?? (costUsd == null ? null : costUsd * USD_TO_CORDOBAS_RATE);
 
   return {
@@ -1616,6 +1616,31 @@ function createEmptyAccountForm(service = 'Netflix') {
     service,
     capacity: getServiceCapacity(service),
     active: true,
+    costAmount: '',
+    costCurrency: 'USD',
+  };
+}
+
+function getAccountCostFormValues(account) {
+  const costCordobas = parseOptionalMoney(account.costo_cordobas__c);
+  if (costCordobas != null) {
+    return {
+      costAmount: String(costCordobas),
+      costCurrency: 'CORDOBAS',
+    };
+  }
+
+  const costUsd = parseOptionalMoney(account.costo_usd__c);
+  if (costUsd != null) {
+    return {
+      costAmount: String(costUsd),
+      costCurrency: 'USD',
+    };
+  }
+
+  return {
+    costAmount: '',
+    costCurrency: 'USD',
   };
 }
 
@@ -1647,6 +1672,7 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
 
   function editAccount(account) {
     const service = account.tipo_de_servicio__c || 'Netflix';
+    const costFormValues = getAccountCostFormValues(account);
     setEditingAccount(account);
     setForm({
       email: account.correo_electronico__c || '',
@@ -1654,6 +1680,7 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
       service,
       capacity: account.capacidad_clientes__c ?? getServiceCapacity(service),
       active: account.activo__c !== false,
+      ...costFormValues,
     });
     setMessage('');
   }
@@ -1689,6 +1716,13 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
 
     if (!session) {
       setMessage('Inicia sesion para guardar cuentas.');
+      return;
+    }
+
+    const normalizedCost = String(form.costAmount || '').trim();
+    const costAmount = normalizedCost ? Number(normalizedCost) : null;
+    if (costAmount != null && (!Number.isFinite(costAmount) || costAmount < 0)) {
+      setMessage('Ingresa un costo valido para la cuenta.');
       return;
     }
 
@@ -1744,7 +1778,11 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
                   <td data-label="Clientes">{financials.subscriptionCount}</td>
                   <td data-label="Clientes en cuenta">{getAccountClientNames(row)}</td>
                   <td data-label="Costo USD">
-                    {financials.costUsd == null ? 'Pendiente' : formatUsd(financials.costUsd)}
+                    {financials.costUsd == null
+                      ? financials.costCordobas == null
+                        ? 'Pendiente'
+                        : '—'
+                      : formatUsd(financials.costUsd)}
                   </td>
                   <td data-label="Costo C$">
                     {financials.costCordobas == null ? 'Pendiente' : formatCordobasDetailed(financials.costCordobas)}
@@ -1783,6 +1821,31 @@ function Accounts({ rows, error, onSaved, session, focusAccount }) {
             <span>Capacidad</span>
             <input type="number" value={form.capacity} readOnly />
           </label>
+          <div className="cost-fields">
+            <label className="field">
+              <span>Costo</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.costAmount}
+                placeholder="0.00"
+                onChange={(event) => updateField('costAmount', event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>Moneda</span>
+              <select value={form.costCurrency} onChange={(event) => updateField('costCurrency', event.target.value)}>
+                <option value="USD">USD</option>
+                <option value="CORDOBAS">C$</option>
+              </select>
+            </label>
+          </div>
+          {form.costCurrency === 'USD' && Number(form.costAmount) > 0 && (
+            <span className="cost-preview">
+              Costo convertido: {formatCordobasDetailed(Number(form.costAmount) * USD_TO_CORDOBAS_RATE)}
+            </span>
+          )}
           <label className="toggle-field">
             <input
               type="checkbox"

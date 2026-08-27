@@ -351,6 +351,29 @@ export async function getSubscriptionCredentialAccount(subscription) {
   return resolveAccountForSubscription(subscription, accounts);
 }
 
+function getAccountCostFields(payload) {
+  const rawAmount = String(payload.costAmount ?? '').trim();
+  if (!rawAmount) {
+    return {
+      costo_usd__c: null,
+      costo_cordobas__c: null,
+    };
+  }
+
+  const amount = Number(rawAmount);
+  if (payload.costCurrency === 'CORDOBAS') {
+    return {
+      costo_usd__c: null,
+      costo_cordobas__c: amount,
+    };
+  }
+
+  return {
+    costo_usd__c: amount,
+    costo_cordobas__c: null,
+  };
+}
+
 export async function createAccount(payload) {
   const client = ensureClient();
   return unwrap(
@@ -362,6 +385,7 @@ export async function createAccount(payload) {
         tipo_de_servicio__c: payload.service,
         capacidad_clientes__c: payload.capacity ? Number(payload.capacity) : null,
         activo__c: payload.active ?? true,
+        ...getAccountCostFields(payload),
       })
       .select()
       .single(),
@@ -379,6 +403,7 @@ export async function updateAccount(id, payload) {
         tipo_de_servicio__c: payload.service,
         capacidad_clientes__c: payload.capacity ? Number(payload.capacity) : null,
         activo__c: payload.active,
+        ...getAccountCostFields(payload),
       })
       .eq('id', id)
       .select()

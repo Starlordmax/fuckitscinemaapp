@@ -554,6 +554,19 @@ td {
   color: var(--red-deep);
 }
 
+.cost-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 10px;
+}
+
+.cost-preview {
+  display: block;
+  color: var(--red-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .toggle-field {
   display: flex;
   align-items: center;
@@ -980,6 +993,10 @@ td {
   .split,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cost-fields {
+    grid-template-columns: minmax(0, 1fr) 96px;
   }
 
   .field--wide {
