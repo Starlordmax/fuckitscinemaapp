@@ -28,6 +28,14 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -39,6 +47,7 @@ button,
 input,
 select {
   font: inherit;
+  min-width: 0;
 }
 
 button {
@@ -48,7 +57,10 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -126,8 +138,11 @@ button {
 }
 
 .workspace {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   padding: 24px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -149,6 +164,7 @@ button {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .status-pill,
@@ -186,6 +202,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  max-width: 100%;
   min-height: 40px;
   padding: 0 10px;
   border: 1px solid var(--border);
@@ -203,6 +220,7 @@ button {
 }
 
 .auth--signed span {
+  min-width: 0;
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -283,6 +301,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -290,6 +309,7 @@ button {
   color: var(--red-dark);
   font-size: 13px;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .notice {
@@ -384,6 +404,7 @@ button {
 .profit-summary strong {
   color: var(--red-deep);
   font-size: 18px;
+  overflow-wrap: anywhere;
 }
 
 .profit-alert--loss {
@@ -446,11 +467,16 @@ button {
 }
 
 .panel__header h2 {
+  min-width: 0;
   margin: 0;
   font-size: 16px;
+  overflow-wrap: anywhere;
 }
 
 .table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -535,6 +561,7 @@ td {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  max-width: 100%;
   min-height: 32px;
   padding: 0 10px;
   border-radius: 8px;
@@ -543,6 +570,7 @@ td {
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
+  text-align: center;
 }
 
 .table-action:disabled {
@@ -707,6 +735,7 @@ td {
   display: flex;
   align-items: center;
   gap: 10px;
+  max-width: 100%;
   min-height: 48px;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -718,9 +747,14 @@ td {
   margin-left: auto;
 }
 
+.selected-customer > div {
+  min-width: 0;
+}
+
 .selected-customer strong,
 .selected-customer span {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .selected-customer span {
@@ -764,6 +798,7 @@ td {
 .modal-sheet__header h2 {
   margin: 0;
   font-size: 18px;
+  overflow-wrap: anywhere;
 }
 
 .modal-sheet__header span {
@@ -772,10 +807,15 @@ td {
   color: var(--red-muted);
   font-size: 12px;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .modal-sheet__close {
   flex: 0 0 auto;
+}
+
+.modal-sheet__header > div {
+  min-width: 0;
 }
 
 .modal-sheet__body {
@@ -960,7 +1000,10 @@ td {
 
   .app-shell {
     display: block;
+    width: 100%;
+    max-width: 100%;
     min-height: auto;
+    overflow-x: hidden;
   }
 
   .sidebar {
@@ -971,9 +1014,12 @@ td {
     left: 0;
     z-index: 10;
     display: block;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 100vw;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(255, 255, 255, 0.26);
     box-shadow: 0 -10px 24px var(--shadow-strong);
+    overflow-x: hidden;
   }
 
   .brand {
@@ -982,8 +1028,8 @@ td {
 
   .nav {
     display: grid;
-    grid-template-columns: repeat(6, minmax(48px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(6, minmax(40px, 1fr));
+    gap: 3px;
     min-width: 0;
     width: 100%;
   }
@@ -992,11 +1038,14 @@ td {
     justify-content: center;
     min-width: 0;
     min-height: 48px;
-    padding: 0 8px;
+    padding: 0 6px;
   }
 
   .workspace {
-    padding: 14px 14px 88px;
+    width: 100%;
+    max-width: 100%;
+    padding: 14px 12px calc(88px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
   }
 
   .topbar {
@@ -1012,15 +1061,20 @@ td {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 44px;
     gap: 8px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .search,
   .auth {
+    width: 100%;
     min-width: 0;
   }
 
   .auth {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     flex-wrap: wrap;
     min-height: 0;
     padding: 8px;
@@ -1033,19 +1087,28 @@ td {
   }
 
   .auth .icon-text-button {
+    grid-column: 1 / -1;
     flex: 1 1 100%;
   }
 
+  .auth__message {
+    grid-column: 1 / -1;
+  }
+
   .auth--signed {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     flex-wrap: nowrap;
   }
 
   .auth--signed span {
     flex: 1 1 auto;
     max-width: none;
+    min-width: 0;
   }
 
   .auth--signed .icon-text-button {
+    grid-column: auto;
     flex: 0 0 auto;
   }
 
@@ -1066,6 +1129,7 @@ td {
   .panel,
   .table-wrap {
     max-width: 100%;
+    min-width: 0;
   }
 
   .content-grid,
@@ -1101,7 +1165,8 @@ td {
   table,
   .compact-table,
   .accounts-table,
-  .expired-table {
+  .expired-table,
+  .profit-table {
     display: block;
     min-width: 0;
     max-width: 100%;
@@ -1115,15 +1180,20 @@ td {
   tbody {
     display: grid;
     gap: 10px;
+    width: 100%;
+    min-width: 0;
   }
 
   tr {
     display: grid;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
+    overflow: hidden;
   }
 
   td {
@@ -1132,6 +1202,7 @@ td {
     justify-content: space-between;
     gap: 16px;
     width: 100%;
+    min-width: 0;
     min-height: 36px;
     padding: 7px 0;
     border-bottom: 1px solid var(--border);
@@ -1146,7 +1217,8 @@ td {
 
   td::before {
     content: attr(data-label);
-    flex: 0 0 42%;
+    flex: 0 0 110px;
+    max-width: 42%;
     color: var(--red-muted);
     font-size: 11px;
     font-weight: 800;
@@ -1159,6 +1231,10 @@ td {
     margin-left: auto;
   }
 
+  td > * {
+    min-width: 0;
+  }
+
   .selected-row {
     background: var(--surface-soft);
   }
@@ -1168,7 +1244,8 @@ td {
   }
 
   .table-action {
-    min-width: 108px;
+    min-width: 96px;
+    white-space: normal;
   }
 
   .expired-table tr {
@@ -1215,6 +1292,7 @@ td {
 
   .expired-table__actions {
     align-self: stretch;
+    min-width: 0;
   }
 
   .expired-table__actions .table-action {
@@ -1222,7 +1300,7 @@ td {
     height: 100%;
     min-width: 92px;
     padding: 0 9px;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .modal-backdrop {
@@ -1233,6 +1311,7 @@ td {
 
   .modal-sheet {
     width: 100%;
+    max-width: calc(100vw - 20px);
     max-height: calc(100dvh - 20px);
   }
 
@@ -1242,6 +1321,7 @@ td {
 
   .modal-sheet__body {
     padding: 12px;
+    overflow-x: hidden;
   }
 
   .selected-customer {
@@ -1262,7 +1342,7 @@ td {
 
 @media (max-width: 460px) {
   .workspace {
-    padding: 10px 10px 84px;
+    padding: 10px 10px calc(84px + env(safe-area-inset-bottom));
   }
 
   .panel,
