@@ -32,8 +32,8 @@ function isSameService(left, right) {
   return normalizeValue(left) === normalizeValue(right);
 }
 
-function isCanceledStatus(status) {
-  return normalizeValue(status) === 'cancelado';
+function isInactiveForAccountCount(status) {
+  return ['cancelado', 'expirado'].includes(normalizeValue(status));
 }
 
 function resolveAccountForSubscription(subscription, accounts) {
@@ -321,7 +321,7 @@ export async function listAccounts() {
   const incomeByAccountId = new Map(accounts.map((account) => [account.id, 0]));
 
   subscriptions.forEach((subscription) => {
-    if (isCanceledStatus(subscription.status__c)) {
+    if (isInactiveForAccountCount(subscription.status__c)) {
       return;
     }
 
