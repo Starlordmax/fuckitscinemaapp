@@ -480,6 +480,37 @@ button {
   overflow-x: auto;
 }
 
+.expired-table-wrap {
+  max-height: clamp(280px, 46vh, 460px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--red) var(--surface-soft);
+  scrollbar-gutter: stable;
+}
+
+.expired-table-wrap::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.expired-table-wrap::-webkit-scrollbar-thumb {
+  border: 2px solid var(--surface-soft);
+  border-radius: 999px;
+  background: var(--red);
+}
+
+.expired-table-wrap::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.expired-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+
 table {
   width: 100%;
   min-width: 620px;
@@ -1301,6 +1332,17 @@ td {
     min-width: 92px;
     padding: 0 9px;
     white-space: normal;
+  }
+
+  .expired-table-wrap {
+    max-height: min(58vh, 520px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .expired-table-wrap tbody {
+    gap: 8px;
   }
 
   .modal-backdrop {

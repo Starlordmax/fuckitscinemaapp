@@ -1000,7 +1000,7 @@ function ExpiredTable({ rows, error, onRenew, onCancel }) {
       {rows.length === 0 && !error ? (
         <EmptyState icon={Film} title="Sin vencidas" text="No hay registros para mostrar." />
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap expired-table-wrap">
           <table className="expired-table">
             <thead>
               <tr>
@@ -2205,7 +2205,7 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div className="dashboard-stack">
             <ExpiredTable
-              rows={expired.slice(0, 6)}
+              rows={expired}
               error={errors.expired}
               onRenew={renewSubscriptionRow}
               onCancel={cancelSubscriptionRow}
